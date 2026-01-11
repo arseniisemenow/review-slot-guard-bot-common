@@ -8,7 +8,7 @@ import (
 	s21client "github.com/arseniisemenow/s21auto-client-go"
 	"github.com/arseniisemenow/s21auto-client-go/requests"
 
-	"github.com/arseniisemenow/review-slot-guard-bot/common/pkg/models"
+	"github.com/arseniisemenow/review-slot-guard-bot-common/pkg/models"
 )
 
 // S21Client wraps the s21auto client with our application logic

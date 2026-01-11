@@ -1,4 +1,4 @@
-module github.com/arseniisemenow/review-slot-guard-bot/common
+module github.com/arseniisemenow/review-slot-guard-bot-common
 
 go 1.23.9
 
