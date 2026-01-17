@@ -15,7 +15,7 @@ import (
 
 // Helper function to convert Unix timestamp to YDB datetime value
 func datetimeValueFromUnix(ts int64) types.Value {
-	return types.TimestampValueFromTime(time.Unix(ts, 0))
+	return types.DatetimeValue(time.Unix(ts, 0))
 }
 
 // Helper function to create optional datetime value
