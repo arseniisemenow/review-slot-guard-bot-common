@@ -107,9 +107,11 @@ func NewParameter(name string, value any) table.ParameterOption {
 }
 
 // TablePathPrefix returns the PRAGMA TablePathPrefix directive
+// Returns empty string if path is empty, since the database is already
+// set in the connection string
 func TablePathPrefix(path string) string {
 	if path == "" {
-		path = "/local"
+		return "" // No prefix needed when database is set in connection
 	}
 	return fmt.Sprintf("PRAGMA TablePathPrefix(\"%s\");", path)
 }
