@@ -10,6 +10,8 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/result"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
+
+	yc "github.com/ydb-platform/ydb-go-yc-metadata"
 )
 
 var (
@@ -33,7 +35,10 @@ func GetConnection(ctx context.Context) (*ydb.Driver, error) {
 			return
 		}
 
-		db, initErr = ydb.Open(ctx, endpoint+"/?database="+database)
+		db, initErr = ydb.Open(ctx, endpoint+"/?database="+database,
+			yc.WithCredentials(), // Use instance metadata service for authentication
+			yc.WithInternalCA(),  // Append Yandex Cloud certificates
+		)
 	})
 
 	return db, initErr

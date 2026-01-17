@@ -8,6 +8,8 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/result"
+
+	yc "github.com/ydb-platform/ydb-go-yc-metadata"
 )
 
 // YDBClient implements the Database interface and wraps a YDB driver
@@ -28,7 +30,10 @@ func NewYDBClient(ctx context.Context) (*YDBClient, error) {
 		return nil, fmt.Errorf("YDB_DATABASE environment variable not set")
 	}
 
-	driver, err := ydb.Open(ctx, endpoint+"/?database="+database)
+	driver, err := ydb.Open(ctx, endpoint+"/?database="+database,
+		yc.WithCredentials(), // Use instance metadata service for authentication
+		yc.WithInternalCA(),  // Append Yandex Cloud certificates
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open YDB connection: %w", err)
 	}
