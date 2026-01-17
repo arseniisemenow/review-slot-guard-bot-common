@@ -994,11 +994,7 @@ func StoreUserTokens(ctx context.Context, reviewerLogin, accessToken, refreshTok
 			$refresh_token,
 			$now,
 			$now
-		)
-		ON (reviewer_login) DO UPDATE
-		SET access_token = $access_token,
-		    refresh_token = $refresh_token,
-		    updated_at = $now;
+		);
 	`
 
 	params := []table.ParameterOption{
