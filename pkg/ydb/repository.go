@@ -985,7 +985,7 @@ func StoreUserTokens(ctx context.Context, reviewerLogin, accessToken, refreshTok
 		DECLARE $reviewer_login AS Utf8;
 		DECLARE $access_token AS Utf8;
 		DECLARE $refresh_token AS Utf8;
-		DECLARE $now AS Timestamp;
+		DECLARE $now AS Datetime;
 
 		UPSERT INTO user_tokens (reviewer_login, access_token, refresh_token, created_at, updated_at)
 		VALUES (
