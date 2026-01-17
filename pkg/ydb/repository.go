@@ -21,9 +21,9 @@ func datetimeValueFromUnix(ts int64) types.Value {
 // Helper function to create optional datetime value
 func optionalDatetimeValue(ts *int64) types.Value {
 	if ts == nil {
-		return types.NullValue(types.TypeTimestamp)
+		return types.NullValue(types.TypeDatetime)
 	}
-	return types.OptionalValue(types.TimestampValueFromTime(time.Unix(*ts, 0)))
+	return types.OptionalValue(types.DatetimeValue(uint32(*ts)))
 }
 
 // GetUserByTelegramChatID retrieves a user by their Telegram chat ID
@@ -110,9 +110,9 @@ func UpsertUser(ctx context.Context, user *models.User) error {
 		DECLARE $reviewer_login AS Utf8;
 		DECLARE $status AS Utf8;
 		DECLARE $telegram_chat_id AS Int64;
-		DECLARE $created_at AS Timestamp;
-		DECLARE $last_auth_success_at AS Timestamp;
-		DECLARE $last_auth_failure_at AS Optional<Timestamp>;
+		DECLARE $created_at AS Datetime;
+		DECLARE $last_auth_success_at AS Datetime;
+		DECLARE $last_auth_failure_at AS Optional<Datetime>;
 
 		UPSERT INTO users (reviewer_login, status, telegram_chat_id, created_at, last_auth_success_at, last_auth_failure_at)
 		VALUES ($reviewer_login, $status, $telegram_chat_id, $created_at, $last_auth_success_at, $last_auth_failure_at);
@@ -560,10 +560,10 @@ func CreateReviewRequest(ctx context.Context, req *models.ReviewRequest) error {
 	sql := TablePathPrefix("") + `
 		DECLARE $id AS Utf8;
 		DECLARE $reviewer_login AS Utf8;
-		DECLARE $review_start_time AS Timestamp;
+		DECLARE $review_start_time AS Datetime;
 		DECLARE $calendar_slot_id AS Utf8;
 		DECLARE $status AS Utf8;
-		DECLARE $created_at AS Timestamp;
+		DECLARE $created_at AS Datetime;
 
 		INSERT INTO review_requests (id, reviewer_login, review_start_time, calendar_slot_id, status, created_at)
 		VALUES ($id, $reviewer_login, $review_start_time, $calendar_slot_id, $status, $created_at);
@@ -730,7 +730,7 @@ func GetReviewRequestsByUserAndStatus(ctx context.Context, reviewerLogin string,
 // GetExpiredWaitingForApprove retrieves reviews that have passed their decision deadline
 func GetExpiredWaitingForApprove(ctx context.Context) ([]*models.ReviewRequest, error) {
 	sql := TablePathPrefix("") + `
-		DECLARE $now AS Timestamp;
+		DECLARE $now AS Datetime;
 
 		SELECT id, reviewer_login, notification_id, project_name, family_label, review_start_time,
 		       calendar_slot_id, decision_deadline, non_whitelist_cancel_at, telegram_message_id,
@@ -764,7 +764,7 @@ func GetExpiredWaitingForApprove(ctx context.Context) ([]*models.ReviewRequest, 
 // GetExpiredNotWhitelisted retrieves NOT_WHITELISTED reviews that have passed their cancel time
 func GetExpiredNotWhitelisted(ctx context.Context) ([]*models.ReviewRequest, error) {
 	sql := TablePathPrefix("") + `
-		DECLARE $now AS Timestamp;
+		DECLARE $now AS Datetime;
 
 		SELECT id, reviewer_login, notification_id, project_name, family_label, review_start_time,
 		       calendar_slot_id, decision_deadline, non_whitelist_cancel_at, telegram_message_id,
@@ -848,7 +848,7 @@ func UpdateReviewRequestWithProjectInfo(ctx context.Context, id, projectName, fa
 func UpdateReviewRequestToWaitingForApprove(ctx context.Context, id string, decisionDeadline int64, telegramMessageID string) error {
 	sql := TablePathPrefix("") + `
 		DECLARE $id AS Utf8;
-		DECLARE $decision_deadline AS Timestamp;
+		DECLARE $decision_deadline AS Datetime;
 		DECLARE $telegram_message_id AS Utf8;
 		DECLARE $status AS Utf8;
 
@@ -873,7 +873,7 @@ func UpdateReviewRequestToWaitingForApprove(ctx context.Context, id string, deci
 func UpdateReviewRequestToNotWhitelisted(ctx context.Context, id string, nonWhitelistCancelAt int64) error {
 	sql := TablePathPrefix("") + `
 		DECLARE $id AS Utf8;
-		DECLARE $non_whitelist_cancel_at AS Timestamp;
+		DECLARE $non_whitelist_cancel_at AS Datetime;
 		DECLARE $status AS Utf8;
 
 		UPDATE review_requests
