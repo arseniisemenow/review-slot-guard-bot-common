@@ -940,3 +940,89 @@ func scanReviewRequest(res result.Result) (*models.ReviewRequest, error) {
 
 	return &req, nil
 }
+
+// GetUserTokens retrieves access and refresh tokens for a user
+func GetUserTokens(ctx context.Context, reviewerLogin string) (*models.UserTokens, error) {
+	sql := TablePathPrefix("") + `
+		DECLARE $reviewer_login AS Utf8;
+
+		SELECT reviewer_login, access_token, refresh_token, created_at, updated_at
+		FROM user_tokens
+		WHERE reviewer_login = $reviewer_login;
+	`
+
+	params := []table.ParameterOption{
+		table.ValueParam("$reviewer_login", types.TextValue(reviewerLogin)),
+	}
+
+	res, err := Query(ctx, sql, params...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query user tokens for %s: %w", reviewerLogin, err)
+	}
+	defer res.Close()
+
+	var tokens models.UserTokens
+	if res.NextRow() {
+		err = res.ScanNamed(
+			named.Required("reviewer_login", &tokens.ReviewerLogin),
+			named.Required("access_token", &tokens.AccessToken),
+			named.Required("refresh_token", &tokens.RefreshToken),
+			named.Required("created_at", &tokens.CreatedAt),
+			named.Required("updated_at", &tokens.UpdatedAt),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan user tokens: %w", err)
+		}
+		return &tokens, nil
+	}
+
+	return nil, fmt.Errorf("user tokens not found for %s", reviewerLogin)
+}
+
+// StoreUserTokens stores or updates access and refresh tokens for a user
+func StoreUserTokens(ctx context.Context, reviewerLogin, accessToken, refreshToken string) error {
+	sql := TablePathPrefix("") + `
+		DECLARE $reviewer_login AS Utf8;
+		DECLARE $access_token AS Utf8;
+		DECLARE $refresh_token AS Utf8;
+		DECLARE $now AS Timestamp;
+
+		UPSERT INTO user_tokens (reviewer_login, access_token, refresh_token, created_at, updated_at)
+		VALUES (
+			$reviewer_login,
+			$access_token,
+			$refresh_token,
+			$now,
+			$now
+		)
+		ON (reviewer_login) DO UPDATE
+		SET access_token = $access_token,
+		    refresh_token = $refresh_token,
+		    updated_at = $now;
+	`
+
+	params := []table.ParameterOption{
+		table.ValueParam("$reviewer_login", types.TextValue(reviewerLogin)),
+		table.ValueParam("$access_token", types.TextValue(accessToken)),
+		table.ValueParam("$refresh_token", types.TextValue(refreshToken)),
+		table.ValueParam("$now", datetimeValueFromUnix(time.Now().Unix())),
+	}
+
+	return Exec(ctx, sql, params...)
+}
+
+// DeleteUserTokens removes tokens for a user
+func DeleteUserTokens(ctx context.Context, reviewerLogin string) error {
+	sql := TablePathPrefix("") + `
+		DECLARE $reviewer_login AS Utf8;
+
+		DELETE FROM user_tokens
+		WHERE reviewer_login = $reviewer_login;
+	`
+
+	params := []table.ParameterOption{
+		table.ValueParam("$reviewer_login", types.TextValue(reviewerLogin)),
+	}
+
+	return Exec(ctx, sql, params...)
+}

@@ -117,6 +117,19 @@ func createTables(ctx context.Context) error {
 				)
 			`,
 		},
+		{
+			name: "user_tokens",
+			schema: `
+				CREATE TABLE user_tokens (
+					reviewer_login Utf8,
+					access_token Utf8,
+					refresh_token Utf8,
+					created_at Datetime,
+					updated_at Datetime,
+					PRIMARY KEY (reviewer_login)
+				)
+			`,
+		},
 	}
 
 	driver, err := GetConnection(ctx)

@@ -155,10 +155,13 @@ type LockboxPayload struct {
 	Users   map[string]UserTokens  `json:"users"`
 }
 
-// UserTokens represents access and refresh tokens for a user
+// UserTokens represents access and refresh tokens for a user stored in YDB
 type UserTokens struct {
+	ReviewerLogin string `json:"reviewer_login"`
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
+	CreatedAt    int64  `json:"created_at"`
+	UpdatedAt    int64  `json:"updated_at"`
 }
 
 // TokenResponse represents the authentication response from s21 platform
