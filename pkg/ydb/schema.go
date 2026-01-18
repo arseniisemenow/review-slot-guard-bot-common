@@ -161,35 +161,18 @@ func createTableIfNotExists(ctx context.Context, driver *ydb.Driver, tablePath, 
 		// Table exists - check if schema needs updating
 		tableName := tablePath[strings.LastIndex(tablePath, "/")+1:]
 
-		// For users table, check if columns are optional
+		// For users table, always drop to ensure clean slate with new schema
+		// This is necessary because existing data may have been written with old types
 		if tableName == "users" {
-			description, err := describeTable(ctx, driver, tablePath)
-			if err == nil && description != nil {
-				needsRecreate := false
-				for _, col := range description.Columns {
-					if col.Name == "last_auth_success_at" || col.Name == "last_auth_failure_at" {
-						logger.Printf("[YDB_SCHEMA] Column %s: Optional=%v", col.Name, col.Optional)
-						if !col.Optional {
-							logger.Printf("Table %s has old schema (non-optional %s), recreating...", tablePath, col.Name)
-							needsRecreate = true
-							break
-						}
-					}
-				}
-				if needsRecreate {
-					// Drop and recreate
-					err := driver.Table().Do(ctx, func(ctx context.Context, s table.Session) error {
-						return s.ExecuteSchemeQuery(ctx, fmt.Sprintf("DROP TABLE `%s`;", tablePath))
-					})
-					if err != nil {
-						logger.Printf("Failed to drop table %s: %v", tablePath, err)
-						return fmt.Errorf("failed to drop table: %w", err)
-					}
-					logger.Printf("Dropped old table: %s", tablePath)
-				} else {
-					logger.Printf("Table already exists with correct schema: %s", tablePath)
-					return nil
-				}
+			logger.Printf("[YDB_SCHEMA] Dropping users table to ensure clean schema migration")
+			err := driver.Table().Do(ctx, func(ctx context.Context, s table.Session) error {
+				return s.ExecuteSchemeQuery(ctx, fmt.Sprintf("DROP TABLE `%s`;", tablePath))
+			})
+			if err != nil {
+				logger.Printf("Failed to drop table %s: %v", tablePath, err)
+				// Continue anyway - table might not exist or be locked
+			} else {
+				logger.Printf("Dropped users table for clean migration: %s", tablePath)
 			}
 		} else if tableName == "review_requests" {
 			// Check review_requests table schema
