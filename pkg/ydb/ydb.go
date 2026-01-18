@@ -114,13 +114,17 @@ func Exec(ctx context.Context, sql string, params ...table.ParameterOption) erro
 			log.Printf("[YDB] Execute failed: %v", err)
 			return err
 		}
-		// Consume and close the result to ensure transaction completes
-		defer res.Close()
-		if err := res.NextResultSetErr(ctx); err != nil {
-			log.Printf("[YDB] NextResultSetErr failed: %v", err)
+		// Per YDB official documentation, use res.Err() instead of NextResultSetErr
+		// for UPSERT/INSERT/UPDATE operations that don't return result sets
+		if err = res.Err(); err != nil {
+			log.Printf("[YDB] Result error: %v", err)
 			return err
 		}
-		log.Printf("[YDB] Execute succeeded, result consumed, DoTx will commit on callback return")
+		if err = res.Close(); err != nil {
+			log.Printf("[YDB] Close failed: %v", err)
+			return err
+		}
+		log.Printf("[YDB] Execute succeeded, DoTx will commit on callback return")
 		return nil
 	}, table.WithIdempotent())
 
