@@ -59,19 +59,26 @@ func Query(ctx context.Context, sql string, params ...table.ParameterOption) (re
 	if err != nil {
 		return nil, fmt.Errorf("failed to get YDB connection: %w", err)
 	}
-	defer CloseConnection(ctx, driver)
+	defer func() {
+		log.Printf("[YDB] Closing connection after Query")
+		CloseConnection(ctx, driver)
+	}()
 
+	log.Printf("[YDB] Querying SQL (first 100 chars): %s", truncateString(sql, 100))
 	var res result.Result
 	err = driver.Table().Do(ctx, func(ctx context.Context, s table.Session) error {
 		_, r, err := s.Execute(ctx, table.DefaultTxControl(), sql, table.NewQueryParameters(params...))
 		if err != nil {
+			log.Printf("[YDB] Execute failed: %v", err)
 			return err
 		}
 		res = r
+		log.Printf("[YDB] Execute succeeded, got result set")
 		return nil
 	}, table.WithIdempotent())
 
 	if err != nil {
+		log.Printf("[YDB] Do failed: %v", err)
 		return nil, fmt.Errorf("query execution failed: %w", err)
 	}
 
@@ -84,12 +91,33 @@ func Exec(ctx context.Context, sql string, params ...table.ParameterOption) erro
 	if err != nil {
 		return fmt.Errorf("failed to get YDB connection: %w", err)
 	}
-	defer CloseConnection(ctx, driver)
+	defer func() {
+		log.Printf("[YDB] Closing connection after Exec")
+		CloseConnection(ctx, driver)
+	}()
 
-	return driver.Table().Do(ctx, func(ctx context.Context, s table.Session) error {
+	log.Printf("[YDB] Executing SQL (first 100 chars): %s", truncateString(sql, 100))
+	err = driver.Table().Do(ctx, func(ctx context.Context, s table.Session) error {
 		_, _, err := s.Execute(ctx, table.DefaultTxControl(), sql, table.NewQueryParameters(params...))
+		if err != nil {
+			log.Printf("[YDB] Execute failed: %v", err)
+		} else {
+			log.Printf("[YDB] Execute succeeded")
+		}
 		return err
 	}, table.WithIdempotent())
+
+	if err != nil {
+		log.Printf("[YDB] Do failed: %v", err)
+	}
+	return err
+}
+
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 // DoTx executes a function within a transaction
