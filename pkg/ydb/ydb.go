@@ -102,18 +102,18 @@ func Exec(ctx context.Context, sql string, params ...table.ParameterOption) erro
 	}
 
 	log.Printf("[YDB] Executing SQL (first 100 chars): %s", truncateString(sql, 100))
-	err = driver.Table().Do(ctx, func(ctx context.Context, s table.Session) error {
-		_, _, err := s.Execute(ctx, table.DefaultTxControl(), sql, table.NewQueryParameters(params...))
+	err = driver.Table().DoTx(ctx, func(ctx context.Context, tx table.TransactionActor) error {
+		_, err := tx.Execute(ctx, sql, table.NewQueryParameters(params...))
 		if err != nil {
 			log.Printf("[YDB] Execute failed: %v", err)
-		} else {
-			log.Printf("[YDB] Execute succeeded")
+			return err
 		}
-		return err
+		log.Printf("[YDB] Execute succeeded, committing transaction")
+		return nil
 	}, table.WithIdempotent())
 
 	if err != nil {
-		log.Printf("[YDB] Do failed: %v", err)
+		log.Printf("[YDB] DoTx failed: %v", err)
 	}
 	return err
 }
