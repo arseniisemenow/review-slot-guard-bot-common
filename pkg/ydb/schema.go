@@ -168,6 +168,7 @@ func createTableIfNotExists(ctx context.Context, driver *ydb.Driver, tablePath, 
 				needsRecreate := false
 				for _, col := range description.Columns {
 					if col.Name == "last_auth_success_at" || col.Name == "last_auth_failure_at" {
+						logger.Printf("[YDB_SCHEMA] Column %s: Optional=%v", col.Name, col.Optional)
 						if !col.Optional {
 							logger.Printf("Table %s has old schema (non-optional %s), recreating...", tablePath, col.Name)
 							needsRecreate = true
