@@ -81,6 +81,12 @@ func Query(ctx context.Context, sql string, params ...table.ParameterOption) (re
 			log.Printf("[YDB] Execute failed: %v", err)
 			return err
 		}
+		// Move to the first result set
+		if err := r.NextResultSetErr(ctx); err != nil {
+			log.Printf("[YDB] NextResultSetErr failed: %v", err)
+			r.Close()
+			return err
+		}
 		res = r
 		log.Printf("[YDB] Execute succeeded, got result set")
 		return nil
@@ -103,12 +109,18 @@ func Exec(ctx context.Context, sql string, params ...table.ParameterOption) erro
 
 	log.Printf("[YDB] Executing SQL (first 100 chars): %s", truncateString(sql, 100))
 	err = driver.Table().DoTx(ctx, func(ctx context.Context, tx table.TransactionActor) error {
-		_, err := tx.Execute(ctx, sql, table.NewQueryParameters(params...))
+		res, err := tx.Execute(ctx, sql, table.NewQueryParameters(params...))
 		if err != nil {
 			log.Printf("[YDB] Execute failed: %v", err)
 			return err
 		}
-		log.Printf("[YDB] Execute succeeded, DoTx will commit on callback return")
+		// Consume and close the result to ensure transaction completes
+		defer res.Close()
+		if err := res.NextResultSetErr(ctx); err != nil {
+			log.Printf("[YDB] NextResultSetErr failed: %v", err)
+			return err
+		}
+		log.Printf("[YDB] Execute succeeded, result consumed, DoTx will commit on callback return")
 		return nil
 	}, table.WithIdempotent())
 
