@@ -31,8 +31,7 @@ func (d *DatabaseAdapter) DoTx(ctx context.Context, fn func(ctx context.Context,
 }
 
 // Close closes the database connection
-// Note: With the new connection-per-operation model, connections are closed automatically
-// This method is kept for interface compatibility but does nothing
+// Note: Connection is managed as singleton, this is a no-op
 func (d *DatabaseAdapter) Close(ctx context.Context) error {
-	return nil
+	return CloseConnection(ctx)
 }
