@@ -49,19 +49,36 @@ func GetUserByTelegramChatID(ctx context.Context, telegramChatID int64) (*models
 
 	log.Printf("[YDB] GetUserByTelegramChatID: Query returned, checking rows...")
 
-	var user models.User
 	if res.NextRow() {
 		log.Printf("[YDB] GetUserByTelegramChatID: Found row for telegram_chat_id %d", telegramChatID)
+
+		// Scan into local variables first to avoid type issues with struct fields
+		var reviewerLogin string
+		var status string
+		var telegramChatID int64
+		var createdAt int64
+		var lastAuthSuccessAt *int64
+		var lastAuthFailureAt *int64
+
 		err = res.ScanNamed(
-			named.Required("reviewer_login", &user.ReviewerLogin),
-			named.Required("status", &user.Status),
-			named.Required("telegram_chat_id", &user.TelegramChatID),
-			named.Required("created_at", &user.CreatedAt),
-			named.Optional("last_auth_success_at", &user.LastAuthSuccessAt),
-			named.Optional("last_auth_failure_at", &user.LastAuthFailureAt),
+			named.Required("reviewer_login", &reviewerLogin),
+			named.Required("status", &status),
+			named.Required("telegram_chat_id", &telegramChatID),
+			named.Required("created_at", &createdAt),
+			named.Optional("last_auth_success_at", &lastAuthSuccessAt),
+			named.Optional("last_auth_failure_at", &lastAuthFailureAt),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+
+		user := models.User{
+			ReviewerLogin:      reviewerLogin,
+			Status:             status,
+			TelegramChatID:     telegramChatID,
+			CreatedAt:          createdAt,
+			LastAuthSuccessAt:  lastAuthSuccessAt,
+			LastAuthFailureAt:  lastAuthFailureAt,
 		}
 		return &user, nil
 	}
@@ -90,18 +107,34 @@ func GetUserByReviewerLogin(ctx context.Context, reviewerLogin string) (*models.
 	}
 	defer res.Close()
 
-	var user models.User
 	if res.NextRow() {
+		// Scan into local variables first to avoid type issues with struct fields
+		var reviewerLoginStr string
+		var status string
+		var telegramChatID int64
+		var createdAt int64
+		var lastAuthSuccessAt *int64
+		var lastAuthFailureAt *int64
+
 		err = res.ScanNamed(
-			named.Required("reviewer_login", &user.ReviewerLogin),
-			named.Required("status", &user.Status),
-			named.Required("telegram_chat_id", &user.TelegramChatID),
-			named.Required("created_at", &user.CreatedAt),
-			named.Optional("last_auth_success_at", &user.LastAuthSuccessAt),
-			named.Optional("last_auth_failure_at", &user.LastAuthFailureAt),
+			named.Required("reviewer_login", &reviewerLoginStr),
+			named.Required("status", &status),
+			named.Required("telegram_chat_id", &telegramChatID),
+			named.Required("created_at", &createdAt),
+			named.Optional("last_auth_success_at", &lastAuthSuccessAt),
+			named.Optional("last_auth_failure_at", &lastAuthFailureAt),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+
+		user := models.User{
+			ReviewerLogin:      reviewerLoginStr,
+			Status:             status,
+			TelegramChatID:     telegramChatID,
+			CreatedAt:          createdAt,
+			LastAuthSuccessAt:  lastAuthSuccessAt,
+			LastAuthFailureAt:  lastAuthFailureAt,
 		}
 		return &user, nil
 	}
@@ -188,17 +221,33 @@ func GetActiveUsers(ctx context.Context) ([]*models.User, error) {
 
 	var users []*models.User
 	for res.NextRow() {
-		var user models.User
+		// Scan into local variables first to avoid type issues with struct fields
+		var reviewerLogin string
+		var status string
+		var telegramChatID int64
+		var createdAt int64
+		var lastAuthSuccessAt *int64
+		var lastAuthFailureAt *int64
+
 		err = res.ScanNamed(
-			named.Required("reviewer_login", &user.ReviewerLogin),
-			named.Required("status", &user.Status),
-			named.Required("telegram_chat_id", &user.TelegramChatID),
-			named.Required("created_at", &user.CreatedAt),
-			named.Optional("last_auth_success_at", &user.LastAuthSuccessAt),
-			named.Optional("last_auth_failure_at", &user.LastAuthFailureAt),
+			named.Required("reviewer_login", &reviewerLogin),
+			named.Required("status", &status),
+			named.Required("telegram_chat_id", &telegramChatID),
+			named.Required("created_at", &createdAt),
+			named.Optional("last_auth_success_at", &lastAuthSuccessAt),
+			named.Optional("last_auth_failure_at", &lastAuthFailureAt),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+
+		user := models.User{
+			ReviewerLogin:      reviewerLogin,
+			Status:             status,
+			TelegramChatID:     telegramChatID,
+			CreatedAt:          createdAt,
+			LastAuthSuccessAt:  lastAuthSuccessAt,
+			LastAuthFailureAt:  lastAuthFailureAt,
 		}
 		users = append(users, &user)
 	}
