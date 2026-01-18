@@ -322,9 +322,9 @@ func TestTablePathPrefix(t *testing.T) {
 			expected: `PRAGMA TablePathPrefix("/custom/path");`,
 		},
 		{
-			name:     "empty path defaults to /local",
+			name:     "empty path returns empty string (database in connection string)",
 			path:     "",
-			expected: `PRAGMA TablePathPrefix("/local");`,
+			expected: "",
 		},
 		{
 			name:     "root path",
@@ -518,7 +518,7 @@ func TestQuery_Construction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Verify SQL contains required elements
-			assert.Contains(t, tt.sql, "PRAGMA TablePathPrefix", "SQL should contain TablePathPrefix")
+			// Note: TablePathPrefix("") returns empty string since database is in connection string
 			assert.Contains(t, tt.sql, "DECLARE", "SQL should contain parameter declarations")
 
 			// Count parameters
@@ -649,8 +649,8 @@ func TestSQLValidation(t *testing.T) {
 				UPSERT INTO users (reviewer_login, status, telegram_chat_id)
 				VALUES ($reviewer_login, $status, $telegram_chat_id);
 			`,
+			// Note: PRAGMA TablePathPrefix not expected when database is in connection string
 			shouldHave: []string{
-				"PRAGMA TablePathPrefix",
 				"DECLARE",
 				"UPSERT",
 				"INTO users",
@@ -671,8 +671,8 @@ func TestSQLValidation(t *testing.T) {
 				SET response_deadline_shift_minutes = $value
 				WHERE reviewer_login = $reviewer_login;
 			`,
+			// Note: PRAGMA TablePathPrefix not expected when database is in connection string
 			shouldHave: []string{
-				"PRAGMA TablePathPrefix",
 				"UPDATE",
 				"SET",
 				"WHERE",
@@ -691,8 +691,8 @@ func TestSQLValidation(t *testing.T) {
 				INSERT INTO user_project_whitelist (reviewer_login, entry_type, name)
 				VALUES ($reviewer_login, $entry_type, $name);
 			`,
+			// Note: PRAGMA TablePathPrefix not expected when database is in connection string
 			shouldHave: []string{
-				"PRAGMA TablePathPrefix",
 				"INSERT",
 				"INTO user_project_whitelist",
 				"VALUES",
