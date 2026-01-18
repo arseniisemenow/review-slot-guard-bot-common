@@ -3,6 +3,7 @@ package ydb
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
@@ -46,8 +47,11 @@ func GetUserByTelegramChatID(ctx context.Context, telegramChatID int64) (*models
 	}
 	defer res.Close()
 
+	log.Printf("[YDB] GetUserByTelegramChatID: Query returned, checking rows...")
+
 	var user models.User
 	if res.NextRow() {
+		log.Printf("[YDB] GetUserByTelegramChatID: Found row for telegram_chat_id %d", telegramChatID)
 		err = res.ScanNamed(
 			named.Required("reviewer_login", &user.ReviewerLogin),
 			named.Required("status", &user.Status),
@@ -62,6 +66,7 @@ func GetUserByTelegramChatID(ctx context.Context, telegramChatID int64) (*models
 		return &user, nil
 	}
 
+	log.Printf("[YDB] GetUserByTelegramChatID: No rows found for telegram_chat_id %d", telegramChatID)
 	return nil, fmt.Errorf("user not found with telegram_chat_id %d", telegramChatID)
 }
 
@@ -127,7 +132,14 @@ func UpsertUser(ctx context.Context, user *models.User) error {
 		table.ValueParam("$last_auth_failure_at", optionalDatetimeValue(user.LastAuthFailureAt)),
 	}
 
-	return Exec(ctx, sql, params...)
+	log.Printf("[YDB] UpsertUser: Attempting to upsert user %s with telegram_chat_id %d", user.ReviewerLogin, user.TelegramChatID)
+	err := Exec(ctx, sql, params...)
+	if err != nil {
+		log.Printf("[YDB] UpsertUser: Failed for user %s: %v", user.ReviewerLogin, err)
+	} else {
+		log.Printf("[YDB] UpsertUser: Successfully upserted user %s with telegram_chat_id %d", user.ReviewerLogin, user.TelegramChatID)
+	}
+	return err
 }
 
 // UpdateUserStatus updates a user's status
