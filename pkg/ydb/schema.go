@@ -53,8 +53,8 @@ func createTables(ctx context.Context) error {
 					status Utf8,
 					telegram_chat_id Int64,
 					created_at Datetime,
-					last_auth_success_at Datetime,
-					last_auth_failure_at Datetime,
+					last_auth_success_at Optional<Datetime>,
+					last_auth_failure_at Optional<Datetime>,
 					PRIMARY KEY (reviewer_login)
 				)
 			`,
@@ -102,17 +102,17 @@ func createTables(ctx context.Context) error {
 				CREATE TABLE review_requests (
 					id Utf8,
 					reviewer_login Utf8,
-					notification_id Utf8,
-					project_name Utf8,
-					family_label Utf8,
+					notification_id Optional<Utf8>,
+					project_name Optional<Utf8>,
+					family_label Optional<Utf8>,
 					review_start_time Datetime,
 					calendar_slot_id Utf8,
-					decision_deadline Datetime,
-					non_whitelist_cancel_at Datetime,
-					telegram_message_id Utf8,
+					decision_deadline Optional<Datetime>,
+					non_whitelist_cancel_at Optional<Datetime>,
+					telegram_message_id Optional<Utf8>,
 					status Utf8,
 					created_at Datetime,
-					decided_at Datetime,
+					decided_at Optional<Datetime>,
 					PRIMARY KEY (id)
 				)
 			`,

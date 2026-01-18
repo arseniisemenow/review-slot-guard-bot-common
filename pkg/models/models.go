@@ -66,7 +66,7 @@ type User struct {
 	Status              string `db:"status"`
 	TelegramChatID      int64  `db:"telegram_chat_id"`
 	CreatedAt          int64  `db:"created_at"`
-	LastAuthSuccessAt  int64  `db:"last_auth_success_at"`
+	LastAuthSuccessAt  *int64 `db:"last_auth_success_at"`
 	LastAuthFailureAt  *int64 `db:"last_auth_failure_at"`
 }
 

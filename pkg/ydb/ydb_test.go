@@ -743,12 +743,13 @@ func TestParameterBuilding(t *testing.T) {
 		{
 			name: "user upsert parameters",
 			buildFn: func() []interface{} {
+				now := time.Now().Unix()
 				user := &models.User{
 					ReviewerLogin:      "testuser",
 					Status:             models.UserStatusActive,
 					TelegramChatID:     123456789,
-					CreatedAt:          time.Now().Unix(),
-					LastAuthSuccessAt:  time.Now().Unix(),
+					CreatedAt:          now,
+					LastAuthSuccessAt:  &now,
 				}
 				return []interface{}{
 					"$reviewer_login", types.TextValue(user.ReviewerLogin),
@@ -861,12 +862,13 @@ func TestDataConversion(t *testing.T) {
 // TestUserModelOperations tests user model operations without database
 func TestUserModelOperations(t *testing.T) {
 	t.Run("create valid user", func(t *testing.T) {
+		now := time.Now().Unix()
 		user := &models.User{
 			ReviewerLogin:      "testuser",
 			Status:             models.UserStatusActive,
 			TelegramChatID:     123456789,
-			CreatedAt:          time.Now().Unix(),
-			LastAuthSuccessAt:  time.Now().Unix(),
+			CreatedAt:          now,
+			LastAuthSuccessAt:  &now,
 			LastAuthFailureAt:  nil,
 		}
 

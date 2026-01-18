@@ -57,7 +57,7 @@ func GetUserByTelegramChatID(ctx context.Context, telegramChatID int64) (*models
 			named.Required("status", &user.Status),
 			named.Required("telegram_chat_id", &user.TelegramChatID),
 			named.Required("created_at", &user.CreatedAt),
-			named.Required("last_auth_success_at", &user.LastAuthSuccessAt),
+			named.Optional("last_auth_success_at", &user.LastAuthSuccessAt),
 			named.Optional("last_auth_failure_at", &user.LastAuthFailureAt),
 		)
 		if err != nil {
@@ -97,7 +97,7 @@ func GetUserByReviewerLogin(ctx context.Context, reviewerLogin string) (*models.
 			named.Required("status", &user.Status),
 			named.Required("telegram_chat_id", &user.TelegramChatID),
 			named.Required("created_at", &user.CreatedAt),
-			named.Required("last_auth_success_at", &user.LastAuthSuccessAt),
+			named.Optional("last_auth_success_at", &user.LastAuthSuccessAt),
 			named.Optional("last_auth_failure_at", &user.LastAuthFailureAt),
 		)
 		if err != nil {
@@ -116,7 +116,7 @@ func UpsertUser(ctx context.Context, user *models.User) error {
 		DECLARE $status AS Utf8;
 		DECLARE $telegram_chat_id AS Int64;
 		DECLARE $created_at AS Datetime;
-		DECLARE $last_auth_success_at AS Datetime;
+		DECLARE $last_auth_success_at AS Optional<Datetime>;
 		DECLARE $last_auth_failure_at AS Optional<Datetime>;
 
 		UPSERT INTO users (reviewer_login, status, telegram_chat_id, created_at, last_auth_success_at, last_auth_failure_at)
@@ -128,7 +128,7 @@ func UpsertUser(ctx context.Context, user *models.User) error {
 		table.ValueParam("$status", types.TextValue(user.Status)),
 		table.ValueParam("$telegram_chat_id", types.Int64Value(user.TelegramChatID)),
 		table.ValueParam("$created_at", datetimeValueFromUnix(user.CreatedAt)),
-		table.ValueParam("$last_auth_success_at", datetimeValueFromUnix(user.LastAuthSuccessAt)),
+		table.ValueParam("$last_auth_success_at", optionalDatetimeValue(user.LastAuthSuccessAt)),
 		table.ValueParam("$last_auth_failure_at", optionalDatetimeValue(user.LastAuthFailureAt)),
 	}
 
@@ -194,7 +194,7 @@ func GetActiveUsers(ctx context.Context) ([]*models.User, error) {
 			named.Required("status", &user.Status),
 			named.Required("telegram_chat_id", &user.TelegramChatID),
 			named.Required("created_at", &user.CreatedAt),
-			named.Required("last_auth_success_at", &user.LastAuthSuccessAt),
+			named.Optional("last_auth_success_at", &user.LastAuthSuccessAt),
 			named.Optional("last_auth_failure_at", &user.LastAuthFailureAt),
 		)
 		if err != nil {
