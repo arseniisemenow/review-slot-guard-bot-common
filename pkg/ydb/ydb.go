@@ -3,6 +3,7 @@ package ydb
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"sync"
 
@@ -26,6 +27,8 @@ func GetConnection(ctx context.Context) (*ydb.Driver, error) {
 		endpoint := os.Getenv("YDB_ENDPOINT")
 		database := os.Getenv("YDB_DATABASE")
 
+		log.Printf("[YDB] Initializing connection: endpoint=%s database=%s", endpoint, database)
+
 		if endpoint == "" {
 			initErr = fmt.Errorf("YDB_ENDPOINT environment variable not set")
 			return
@@ -35,11 +38,24 @@ func GetConnection(ctx context.Context) (*ydb.Driver, error) {
 			return
 		}
 
-		db, initErr = ydb.Open(ctx, endpoint+"/?database="+database,
+		connectionString := endpoint + "/?database=" + database
+		log.Printf("[YDB] Connection string: %s", connectionString)
+
+		db, initErr = ydb.Open(ctx, connectionString,
 			yc.WithCredentials(), // Use instance metadata service for authentication
 			yc.WithInternalCA(),  // Append Yandex Cloud certificates
 		)
+
+		if initErr != nil {
+			log.Printf("[YDB] Failed to open connection: %v", initErr)
+		} else {
+			log.Printf("[YDB] Successfully opened connection")
+		}
 	})
+
+	if db == nil && initErr == nil {
+		log.Printf("[YDB] WARNING: db is nil but initErr is also nil")
+	}
 
 	return db, initErr
 }
