@@ -108,12 +108,14 @@ func Exec(ctx context.Context, sql string, params ...table.ParameterOption) erro
 			log.Printf("[YDB] Execute failed: %v", err)
 			return err
 		}
-		log.Printf("[YDB] Execute succeeded, committing transaction")
+		log.Printf("[YDB] Execute succeeded, DoTx will commit on callback return")
 		return nil
 	}, table.WithIdempotent())
 
 	if err != nil {
 		log.Printf("[YDB] DoTx failed: %v", err)
+	} else {
+		log.Printf("[YDB] DoTx succeeded - transaction should be committed")
 	}
 	return err
 }
@@ -143,11 +145,14 @@ func NewParameter(name string, value any) table.ParameterOption {
 }
 
 // TablePathPrefix returns the PRAGMA TablePathPrefix directive
-// Returns empty string if path is empty, since the database is already
-// set in the connection string
 func TablePathPrefix(path string) string {
 	if path == "" {
-		return "" // No prefix needed when database is set in connection
+		// Use the database path from environment
+		database := os.Getenv("YDB_DATABASE")
+		if database == "" {
+			return ""
+		}
+		return fmt.Sprintf("PRAGMA TablePathPrefix(\"%s\");", database)
 	}
 	return fmt.Sprintf("PRAGMA TablePathPrefix(\"%s\");", path)
 }
