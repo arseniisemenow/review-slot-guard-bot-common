@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sync"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
@@ -15,53 +14,39 @@ import (
 	yc "github.com/ydb-platform/ydb-go-yc-metadata"
 )
 
-var (
-	db   *ydb.Driver
-	once sync.Once
-)
-
-// GetConnection returns a YDB connection, creating it if needed
+// GetConnection returns a fresh YDB connection for each call
+// This prevents stale session state across function invocations
 func GetConnection(ctx context.Context) (*ydb.Driver, error) {
-	var initErr error
-	once.Do(func() {
-		endpoint := os.Getenv("YDB_ENDPOINT")
-		database := os.Getenv("YDB_DATABASE")
+	endpoint := os.Getenv("YDB_ENDPOINT")
+	database := os.Getenv("YDB_DATABASE")
 
-		log.Printf("[YDB] Initializing connection: endpoint=%s database=%s", endpoint, database)
-
-		if endpoint == "" {
-			initErr = fmt.Errorf("YDB_ENDPOINT environment variable not set")
-			return
-		}
-		if database == "" {
-			initErr = fmt.Errorf("YDB_DATABASE environment variable not set")
-			return
-		}
-
-		connectionString := endpoint + "/?database=" + database
-		log.Printf("[YDB] Connection string: %s", connectionString)
-
-		db, initErr = ydb.Open(ctx, connectionString,
-			yc.WithCredentials(), // Use instance metadata service for authentication
-			yc.WithInternalCA(),  // Append Yandex Cloud certificates
-		)
-
-		if initErr != nil {
-			log.Printf("[YDB] Failed to open connection: %v", initErr)
-		} else {
-			log.Printf("[YDB] Successfully opened connection")
-		}
-	})
-
-	if db == nil && initErr == nil {
-		log.Printf("[YDB] WARNING: db is nil but initErr is also nil")
+	if endpoint == "" {
+		return nil, fmt.Errorf("YDB_ENDPOINT environment variable not set")
+	}
+	if database == "" {
+		return nil, fmt.Errorf("YDB_DATABASE environment variable not set")
 	}
 
-	return db, initErr
+	connectionString := endpoint + "/?database=" + database
+
+	log.Printf("[YDB] Opening new connection: %s", connectionString)
+
+	db, err := ydb.Open(ctx, connectionString,
+		yc.WithCredentials(), // Use instance metadata service for authentication
+		yc.WithInternalCA(),  // Append Yandex Cloud certificates
+	)
+
+	if err != nil {
+		log.Printf("[YDB] Failed to open connection: %v", err)
+		return nil, err
+	}
+
+	log.Printf("[YDB] Successfully opened connection")
+	return db, nil
 }
 
 // CloseConnection closes the YDB connection
-func CloseConnection(ctx context.Context) error {
+func CloseConnection(ctx context.Context, db *ydb.Driver) error {
 	if db != nil {
 		return db.Close(ctx)
 	}
@@ -74,6 +59,7 @@ func Query(ctx context.Context, sql string, params ...table.ParameterOption) (re
 	if err != nil {
 		return nil, fmt.Errorf("failed to get YDB connection: %w", err)
 	}
+	defer CloseConnection(ctx, driver)
 
 	var res result.Result
 	err = driver.Table().Do(ctx, func(ctx context.Context, s table.Session) error {
@@ -98,6 +84,7 @@ func Exec(ctx context.Context, sql string, params ...table.ParameterOption) erro
 	if err != nil {
 		return fmt.Errorf("failed to get YDB connection: %w", err)
 	}
+	defer CloseConnection(ctx, driver)
 
 	return driver.Table().Do(ctx, func(ctx context.Context, s table.Session) error {
 		_, _, err := s.Execute(ctx, table.DefaultTxControl(), sql, table.NewQueryParameters(params...))
@@ -111,6 +98,7 @@ func DoTx(ctx context.Context, fn func(ctx context.Context, tx table.Transaction
 	if err != nil {
 		return fmt.Errorf("failed to get YDB connection: %w", err)
 	}
+	defer CloseConnection(ctx, driver)
 
 	return driver.Table().DoTx(ctx, func(ctx context.Context, tx table.TransactionActor) error {
 		return fn(ctx, tx)
