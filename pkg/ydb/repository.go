@@ -136,10 +136,21 @@ func UpsertUser(ctx context.Context, user *models.User) error {
 	err := Exec(ctx, sql, params...)
 	if err != nil {
 		log.Printf("[YDB] UpsertUser: Failed for user %s: %v", user.ReviewerLogin, err)
-	} else {
-		log.Printf("[YDB] UpsertUser: Successfully upserted user %s with telegram_chat_id %d", user.ReviewerLogin, user.TelegramChatID)
+		return err
 	}
-	return err
+
+	log.Printf("[YDB] UpsertUser: Successfully upserted user %s with telegram_chat_id %d", user.ReviewerLogin, user.TelegramChatID)
+
+	// Verify the upsert by immediately reading back the user
+	log.Printf("[YDB] UpsertUser: Verifying user was written...")
+	verifyUser, err := GetUserByTelegramChatID(ctx, user.TelegramChatID)
+	if err != nil {
+		log.Printf("[YDB] UpsertUser: WARNING - Verification failed immediately after upsert: %v", err)
+	} else {
+		log.Printf("[YDB] UpsertUser: Verification succeeded - found user %s", verifyUser.ReviewerLogin)
+	}
+
+	return nil
 }
 
 // UpdateUserStatus updates a user's status
