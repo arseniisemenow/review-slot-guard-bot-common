@@ -65,9 +65,9 @@ type User struct {
 	ReviewerLogin       string `db:"reviewer_login"`
 	Status              string `db:"status"`
 	TelegramChatID      int64  `db:"telegram_chat_id"`
-	CreatedAt          int64  `db:"created_at"`
-	LastAuthSuccessAt  *int64 `db:"last_auth_success_at"`
-	LastAuthFailureAt  *int64 `db:"last_auth_failure_at"`
+	CreatedAt          uint32 `db:"created_at"`
+	LastAuthSuccessAt  *uint32 `db:"last_auth_success_at"`
+	LastAuthFailureAt  *uint32 `db:"last_auth_failure_at"`
 }
 
 // UserSettings represents per-user configuration
@@ -116,14 +116,14 @@ type ReviewRequest struct {
 	NotificationID      *string `db:"notification_id"`
 	ProjectName         *string `db:"project_name"`
 	FamilyLabel         *string `db:"family_label"`
-	ReviewStartTime     int64   `db:"review_start_time"`
+	ReviewStartTime     uint32  `db:"review_start_time"`
 	CalendarSlotID      string  `db:"calendar_slot_id"`
-	DecisionDeadline    *int64  `db:"decision_deadline"`
-	NonWhitelistCancelAt *int64  `db:"non_whitelist_cancel_at"`
+	DecisionDeadline    *uint32 `db:"decision_deadline"`
+	NonWhitelistCancelAt *uint32 `db:"non_whitelist_cancel_at"`
 	TelegramMessageID   *string `db:"telegram_message_id"`
 	Status              string  `db:"status"`
-	CreatedAt           int64   `db:"created_at"`
-	DecidedAt           *int64  `db:"decided_at"`
+	CreatedAt           uint32  `db:"created_at"`
+	DecidedAt           *uint32 `db:"decided_at"`
 }
 
 // CalendarSlot represents a time slot from the calendar API
@@ -160,8 +160,8 @@ type UserTokens struct {
 	ReviewerLogin string `json:"reviewer_login"`
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
-	CreatedAt    int64  `json:"created_at"`
-	UpdatedAt    int64  `json:"updated_at"`
+	CreatedAt    uint32 `json:"created_at"`
+	UpdatedAt    uint32 `json:"updated_at"`
 }
 
 // TokenResponse represents the authentication response from s21 platform

@@ -231,84 +231,6 @@ func setEnv(key, value string) {
 // Original Tests
 // ============================================================================
 
-// TestDatetimeValueFromUnix tests the datetimeValueFromUnix helper function
-func TestDatetimeValueFromUnix(t *testing.T) {
-	tests := []struct {
-		name      string
-		timestamp int64
-	}{
-		{
-			name:      "valid timestamp",
-			timestamp: 1672531200, // 2023-01-01 00:00:00 UTC
-		},
-		{
-			name:      "zero timestamp",
-			timestamp: 0,
-		},
-		{
-			name:      "negative timestamp (before Unix epoch)",
-			timestamp: -86400,
-		},
-		{
-			name:      "future timestamp",
-			timestamp: 1735689600, // 2025-01-01 00:00:00 UTC
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := datetimeValueFromUnix(tt.timestamp)
-			assert.NotNil(t, result, "datetimeValueFromUnix should return a non-nil value")
-
-			// Verify the value is a valid timestamp type
-			// The YDB SDK's TimestampValueFromTime creates a Value with the timestamp type
-			assert.NotNil(t, result)
-		})
-	}
-}
-
-// TestOptionalDatetimeValue tests the optionalDatetimeValue helper function
-func TestOptionalDatetimeValue(t *testing.T) {
-	tests := []struct {
-		name      string
-		timestamp *int64
-		isNull    bool
-	}{
-		{
-			name:      "nil timestamp returns null",
-			timestamp: nil,
-			isNull:    true,
-		},
-		{
-			name:      "valid timestamp",
-			timestamp: func() *int64 { v := int64(1672531200); return &v }(),
-			isNull:    false,
-		},
-		{
-			name:      "zero timestamp",
-			timestamp: func() *int64 { v := int64(0); return &v }(),
-			isNull:    false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := optionalDatetimeValue(tt.timestamp)
-			assert.NotNil(t, result, "optionalDatetimeValue should return a non-nil value")
-
-			// For nil timestamp, we expect an OptionalValue wrapping NullValue
-			// For non-nil, we expect an OptionalValue wrapping a TimestampValue
-			if tt.isNull {
-				// The function returns types.NullValue(types.TypeTimestamp) wrapped in OptionalValue
-				assert.NotNil(t, result)
-			} else {
-				// The function returns types.OptionalValue(types.TimestampValueFromTime(...))
-				assert.NotNil(t, result)
-			}
-		})
-	}
-}
-
 // TestTablePathPrefix tests the TablePathPrefix function
 func TestTablePathPrefix(t *testing.T) {
 	tests := []struct {
@@ -743,7 +665,7 @@ func TestParameterBuilding(t *testing.T) {
 		{
 			name: "user upsert parameters",
 			buildFn: func() []interface{} {
-				now := time.Now().Unix()
+				now := uint32(time.Now().Unix())
 				user := &models.User{
 					ReviewerLogin:      "testuser",
 					Status:             models.UserStatusActive,
@@ -836,24 +758,24 @@ func TestDataConversion(t *testing.T) {
 		ts := now.Unix()
 
 		// Convert to YDB value
-		ydbValue := datetimeValueFromUnix(ts)
+		ydbValue := types.DatetimeValue(uint32(ts))
 		// Verify the value is created successfully
 		assert.NotNil(t, ydbValue)
 	})
 
 	t.Run("optional timestamp conversion - with value", func(t *testing.T) {
 		now := time.Now()
-		ts := now.Unix()
+		ts := uint32(now.Unix())
 
 		// Convert to optional YDB value
-		ydbValue := optionalDatetimeValue(&ts)
+		ydbValue := optionalDatetime(&ts)
 		// Verify the value is created successfully
 		assert.NotNil(t, ydbValue)
 	})
 
 	t.Run("optional timestamp conversion - nil", func(t *testing.T) {
 		// Convert nil to optional YDB value
-		ydbValue := optionalDatetimeValue(nil)
+		ydbValue := optionalDatetime(nil)
 		// Verify the value is created successfully (should be null)
 		assert.NotNil(t, ydbValue)
 	})
@@ -862,7 +784,7 @@ func TestDataConversion(t *testing.T) {
 // TestUserModelOperations tests user model operations without database
 func TestUserModelOperations(t *testing.T) {
 	t.Run("create valid user", func(t *testing.T) {
-		now := time.Now().Unix()
+		now := uint32(time.Now().Unix())
 		user := &models.User{
 			ReviewerLogin:      "testuser",
 			Status:             models.UserStatusActive,
@@ -879,7 +801,7 @@ func TestUserModelOperations(t *testing.T) {
 	})
 
 	t.Run("create user with failure timestamp", func(t *testing.T) {
-		failureTime := time.Now().Unix()
+		failureTime := uint32(time.Now().Unix())
 		user := &models.User{
 			ReviewerLogin:      "testuser",
 			Status:             models.UserStatusInactive,
@@ -897,7 +819,7 @@ func TestReviewRequestModelOperations(t *testing.T) {
 	t.Run("create review request with optional fields", func(t *testing.T) {
 		projectName := "test-project"
 		familyLabel := "Test Family"
-		decisionDeadline := time.Now().Add(1 * time.Hour).Unix()
+		decisionDeadline := uint32(time.Now().Add(1 * time.Hour).Unix())
 
 		req := &models.ReviewRequest{
 			ID:               "test-id-123",
@@ -1063,21 +985,21 @@ func TestContextHandling(t *testing.T) {
 
 // BenchmarkDatetimeConversion benchmarks datetime conversion
 func BenchmarkDatetimeConversion(b *testing.B) {
-	timestamp := time.Now().Unix()
+	timestamp := uint32(time.Now().Unix())
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = datetimeValueFromUnix(timestamp)
+		_ = types.DatetimeValue(timestamp)
 	}
 }
 
 // BenchmarkOptionalDatetimeConversion benchmarks optional datetime conversion
 func BenchmarkOptionalDatetimeConversion(b *testing.B) {
-	timestamp := time.Now().Unix()
+	timestamp := uint32(time.Now().Unix())
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = optionalDatetimeValue(&timestamp)
+		_ = optionalDatetime(&timestamp)
 	}
 }
 

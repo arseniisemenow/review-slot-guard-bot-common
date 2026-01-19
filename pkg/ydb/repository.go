@@ -14,17 +14,12 @@ import (
 	"github.com/arseniisemenow/review-slot-guard-bot-common/pkg/models"
 )
 
-// Helper function to convert Unix timestamp to YDB datetime value
-func datetimeValueFromUnix(ts int64) types.Value {
-	return types.DatetimeValue(uint32(ts))
-}
-
-// Helper function to create optional datetime value
-func optionalDatetimeValue(ts *int64) types.Value {
+// optionalDatetime creates an optional Datetime value from a uint32 pointer
+func optionalDatetime(ts *uint32) types.Value {
 	if ts == nil {
 		return types.NullValue(types.TypeDatetime)
 	}
-	return types.OptionalValue(types.DatetimeValue(uint32(*ts)))
+	return types.OptionalValue(types.DatetimeValue(*ts))
 }
 
 // GetUserByTelegramChatID retrieves a user by their Telegram chat ID
@@ -52,34 +47,19 @@ func GetUserByTelegramChatID(ctx context.Context, telegramChatID int64) (*models
 	if res.NextRow() {
 		log.Printf("[YDB] GetUserByTelegramChatID: Found row for telegram_chat_id %d", telegramChatID)
 
-		// Scan into local variables first to avoid type issues with struct fields
-		var reviewerLogin string
-		var status string
-		var telegramChatID int64
-		var createdAt int64
-		var lastAuthSuccessAt *int64
-		var lastAuthFailureAt *int64
-
+		var user models.User
 		err = res.ScanNamed(
-			named.Required("reviewer_login", &reviewerLogin),
-			named.Required("status", &status),
-			named.Required("telegram_chat_id", &telegramChatID),
-			named.Required("created_at", &createdAt),
-			named.Optional("last_auth_success_at", &lastAuthSuccessAt),
-			named.Optional("last_auth_failure_at", &lastAuthFailureAt),
+			named.Required("reviewer_login", &user.ReviewerLogin),
+			named.Required("status", &user.Status),
+			named.Required("telegram_chat_id", &user.TelegramChatID),
+			named.Required("created_at", &user.CreatedAt),
+			named.Optional("last_auth_success_at", &user.LastAuthSuccessAt),
+			named.Optional("last_auth_failure_at", &user.LastAuthFailureAt),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
 
-		user := models.User{
-			ReviewerLogin:      reviewerLogin,
-			Status:             status,
-			TelegramChatID:     telegramChatID,
-			CreatedAt:          createdAt,
-			LastAuthSuccessAt:  lastAuthSuccessAt,
-			LastAuthFailureAt:  lastAuthFailureAt,
-		}
 		return &user, nil
 	}
 
@@ -108,34 +88,19 @@ func GetUserByReviewerLogin(ctx context.Context, reviewerLogin string) (*models.
 	defer res.Close()
 
 	if res.NextRow() {
-		// Scan into local variables first to avoid type issues with struct fields
-		var reviewerLoginStr string
-		var status string
-		var telegramChatID int64
-		var createdAt int64
-		var lastAuthSuccessAt *int64
-		var lastAuthFailureAt *int64
-
+		var user models.User
 		err = res.ScanNamed(
-			named.Required("reviewer_login", &reviewerLoginStr),
-			named.Required("status", &status),
-			named.Required("telegram_chat_id", &telegramChatID),
-			named.Required("created_at", &createdAt),
-			named.Optional("last_auth_success_at", &lastAuthSuccessAt),
-			named.Optional("last_auth_failure_at", &lastAuthFailureAt),
+			named.Required("reviewer_login", &user.ReviewerLogin),
+			named.Required("status", &user.Status),
+			named.Required("telegram_chat_id", &user.TelegramChatID),
+			named.Required("created_at", &user.CreatedAt),
+			named.Optional("last_auth_success_at", &user.LastAuthSuccessAt),
+			named.Optional("last_auth_failure_at", &user.LastAuthFailureAt),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
 
-		user := models.User{
-			ReviewerLogin:      reviewerLoginStr,
-			Status:             status,
-			TelegramChatID:     telegramChatID,
-			CreatedAt:          createdAt,
-			LastAuthSuccessAt:  lastAuthSuccessAt,
-			LastAuthFailureAt:  lastAuthFailureAt,
-		}
 		return &user, nil
 	}
 
@@ -160,9 +125,9 @@ func UpsertUser(ctx context.Context, user *models.User) error {
 		table.ValueParam("$reviewer_login", types.TextValue(user.ReviewerLogin)),
 		table.ValueParam("$status", types.TextValue(user.Status)),
 		table.ValueParam("$telegram_chat_id", types.Int64Value(user.TelegramChatID)),
-		table.ValueParam("$created_at", datetimeValueFromUnix(user.CreatedAt)),
-		table.ValueParam("$last_auth_success_at", optionalDatetimeValue(user.LastAuthSuccessAt)),
-		table.ValueParam("$last_auth_failure_at", optionalDatetimeValue(user.LastAuthFailureAt)),
+		table.ValueParam("$created_at", types.DatetimeValue(user.CreatedAt)),
+		table.ValueParam("$last_auth_success_at", optionalDatetime(user.LastAuthSuccessAt)),
+		table.ValueParam("$last_auth_failure_at", optionalDatetime(user.LastAuthFailureAt)),
 	}
 
 	log.Printf("[YDB] UpsertUser: Attempting to upsert user %s with telegram_chat_id %d", user.ReviewerLogin, user.TelegramChatID)
@@ -221,33 +186,17 @@ func GetActiveUsers(ctx context.Context) ([]*models.User, error) {
 
 	var users []*models.User
 	for res.NextRow() {
-		// Scan into local variables first to avoid type issues with struct fields
-		var reviewerLogin string
-		var status string
-		var telegramChatID int64
-		var createdAt int64
-		var lastAuthSuccessAt *int64
-		var lastAuthFailureAt *int64
-
+		var user models.User
 		err = res.ScanNamed(
-			named.Required("reviewer_login", &reviewerLogin),
-			named.Required("status", &status),
-			named.Required("telegram_chat_id", &telegramChatID),
-			named.Required("created_at", &createdAt),
-			named.Optional("last_auth_success_at", &lastAuthSuccessAt),
-			named.Optional("last_auth_failure_at", &lastAuthFailureAt),
+			named.Required("reviewer_login", &user.ReviewerLogin),
+			named.Required("status", &user.Status),
+			named.Required("telegram_chat_id", &user.TelegramChatID),
+			named.Required("created_at", &user.CreatedAt),
+			named.Optional("last_auth_success_at", &user.LastAuthSuccessAt),
+			named.Optional("last_auth_failure_at", &user.LastAuthFailureAt),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %w", err)
-		}
-
-		user := models.User{
-			ReviewerLogin:      reviewerLogin,
-			Status:             status,
-			TelegramChatID:     telegramChatID,
-			CreatedAt:          createdAt,
-			LastAuthSuccessAt:  lastAuthSuccessAt,
-			LastAuthFailureAt:  lastAuthFailureAt,
 		}
 		users = append(users, &user)
 	}
@@ -644,10 +593,10 @@ func CreateReviewRequest(ctx context.Context, req *models.ReviewRequest) error {
 	params := []table.ParameterOption{
 		table.ValueParam("$id", types.TextValue(req.ID)),
 		table.ValueParam("$reviewer_login", types.TextValue(req.ReviewerLogin)),
-		table.ValueParam("$review_start_time", datetimeValueFromUnix(req.ReviewStartTime)),
+		table.ValueParam("$review_start_time", types.DatetimeValue(req.ReviewStartTime)),
 		table.ValueParam("$calendar_slot_id", types.TextValue(req.CalendarSlotID)),
 		table.ValueParam("$status", types.TextValue(req.Status)),
-		table.ValueParam("$created_at", datetimeValueFromUnix(req.CreatedAt)),
+		table.ValueParam("$created_at", types.DatetimeValue(req.CreatedAt)),
 	}
 
 	return Exec(ctx, sql, params...)
@@ -812,7 +761,7 @@ func GetExpiredWaitingForApprove(ctx context.Context) ([]*models.ReviewRequest, 
 	`
 
 	params := []table.ParameterOption{
-		table.ValueParam("$now", datetimeValueFromUnix(time.Now().Unix())),
+		table.ValueParam("$now", types.DatetimeValue(uint32(time.Now().Unix()))),
 	}
 
 	res, err := Query(ctx, sql, params...)
@@ -846,7 +795,7 @@ func GetExpiredNotWhitelisted(ctx context.Context) ([]*models.ReviewRequest, err
 	`
 
 	params := []table.ParameterOption{
-		table.ValueParam("$now", datetimeValueFromUnix(time.Now().Unix())),
+		table.ValueParam("$now", types.DatetimeValue(uint32(time.Now().Unix()))),
 	}
 
 	res, err := Query(ctx, sql, params...)
@@ -868,11 +817,11 @@ func GetExpiredNotWhitelisted(ctx context.Context) ([]*models.ReviewRequest, err
 }
 
 // UpdateReviewRequestStatus updates a review request's status
-func UpdateReviewRequestStatus(ctx context.Context, id, status string, decidedAt *int64) error {
+func UpdateReviewRequestStatus(ctx context.Context, id, status string, decidedAt *uint32) error {
 	sql := TablePathPrefix("") + `
 		DECLARE $id AS Utf8;
 		DECLARE $status AS Utf8;
-		DECLARE $decided_at AS Optional<Timestamp>;
+		DECLARE $decided_at AS Optional<Datetime>;
 
 		UPDATE review_requests
 		SET status = $status, decided_at = $decided_at
@@ -882,7 +831,7 @@ func UpdateReviewRequestStatus(ctx context.Context, id, status string, decidedAt
 	params := []table.ParameterOption{
 		table.ValueParam("$id", types.TextValue(id)),
 		table.ValueParam("$status", types.TextValue(status)),
-		table.ValueParam("$decided_at", optionalDatetimeValue(decidedAt)),
+		table.ValueParam("$decided_at", optionalDatetime(decidedAt)),
 	}
 
 	return Exec(ctx, sql, params...)
@@ -917,7 +866,7 @@ func UpdateReviewRequestWithProjectInfo(ctx context.Context, id, projectName, fa
 }
 
 // UpdateReviewRequestToWaitingForApprove updates a review request to WAITING_FOR_APPROVE
-func UpdateReviewRequestToWaitingForApprove(ctx context.Context, id string, decisionDeadline int64, telegramMessageID string) error {
+func UpdateReviewRequestToWaitingForApprove(ctx context.Context, id string, decisionDeadline uint32, telegramMessageID string) error {
 	sql := TablePathPrefix("") + `
 		DECLARE $id AS Utf8;
 		DECLARE $decision_deadline AS Datetime;
@@ -933,7 +882,7 @@ func UpdateReviewRequestToWaitingForApprove(ctx context.Context, id string, deci
 
 	params := []table.ParameterOption{
 		table.ValueParam("$id", types.TextValue(id)),
-		table.ValueParam("$decision_deadline", datetimeValueFromUnix(decisionDeadline)),
+		table.ValueParam("$decision_deadline", types.DatetimeValue(decisionDeadline)),
 		table.ValueParam("$telegram_message_id", types.TextValue(telegramMessageID)),
 		table.ValueParam("$status", types.TextValue(models.StatusWaitingForApprove)),
 	}
@@ -942,7 +891,7 @@ func UpdateReviewRequestToWaitingForApprove(ctx context.Context, id string, deci
 }
 
 // UpdateReviewRequestToNotWhitelisted updates a review request to NOT_WHITELISTED
-func UpdateReviewRequestToNotWhitelisted(ctx context.Context, id string, nonWhitelistCancelAt int64) error {
+func UpdateReviewRequestToNotWhitelisted(ctx context.Context, id string, nonWhitelistCancelAt uint32) error {
 	sql := TablePathPrefix("") + `
 		DECLARE $id AS Utf8;
 		DECLARE $non_whitelist_cancel_at AS Datetime;
@@ -956,7 +905,7 @@ func UpdateReviewRequestToNotWhitelisted(ctx context.Context, id string, nonWhit
 
 	params := []table.ParameterOption{
 		table.ValueParam("$id", types.TextValue(id)),
-		table.ValueParam("$non_whitelist_cancel_at", datetimeValueFromUnix(nonWhitelistCancelAt)),
+		table.ValueParam("$non_whitelist_cancel_at", types.DatetimeValue(nonWhitelistCancelAt)),
 		table.ValueParam("$status", types.TextValue(models.StatusNotWhitelisted)),
 	}
 
@@ -967,8 +916,8 @@ func UpdateReviewRequestToNotWhitelisted(ctx context.Context, id string, nonWhit
 func scanReviewRequest(res result.Result) (*models.ReviewRequest, error) {
 	var req models.ReviewRequest
 	var notificationID, projectName, familyLabel, telegramMessageID string
-	var decisionDeadline, nonWhitelistCancelAt int64
-	var decidedAt *int64
+	var decisionDeadline, nonWhitelistCancelAt uint32
+	var decidedAt *uint32
 
 	err := res.ScanNamed(
 		named.Required("id", &req.ID),
@@ -1073,7 +1022,7 @@ func StoreUserTokens(ctx context.Context, reviewerLogin, accessToken, refreshTok
 		table.ValueParam("$reviewer_login", types.TextValue(reviewerLogin)),
 		table.ValueParam("$access_token", types.TextValue(accessToken)),
 		table.ValueParam("$refresh_token", types.TextValue(refreshToken)),
-		table.ValueParam("$now", datetimeValueFromUnix(time.Now().Unix())),
+		table.ValueParam("$now", types.DatetimeValue(uint32(time.Now().Unix()))),
 	}
 
 	return Exec(ctx, sql, params...)

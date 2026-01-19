@@ -60,6 +60,11 @@ func ToUnixSeconds(t time.Time) int64 {
 	return t.Unix()
 }
 
+// ToUnixSeconds32 converts time to Unix seconds as uint32 (for YDB Datetime)
+func ToUnixSeconds32(t time.Time) uint32 {
+	return uint32(t.Unix())
+}
+
 // FromUnixMillis converts Unix milliseconds to time
 func FromUnixMillis(ms int64) time.Time {
 	return time.UnixMilli(ms).UTC()
@@ -68,6 +73,11 @@ func FromUnixMillis(ms int64) time.Time {
 // FromUnixSeconds converts Unix seconds to time
 func FromUnixSeconds(s int64) time.Time {
 	return time.Unix(s, 0).UTC()
+}
+
+// FromUnixSeconds32 converts Unix seconds as uint32 to time (for YDB Datetime)
+func FromUnixSeconds32(s uint32) time.Time {
+	return time.Unix(int64(s), 0).UTC()
 }
 
 // CalculateDecisionDeadline calculates when to ask user for decision
