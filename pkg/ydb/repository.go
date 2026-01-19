@@ -915,8 +915,8 @@ func UpdateReviewRequestToNotWhitelisted(ctx context.Context, id string, nonWhit
 // scanReviewRequest scans a review request from a result set
 func scanReviewRequest(res result.Result) (*models.ReviewRequest, error) {
 	var req models.ReviewRequest
-	var notificationID, projectName, familyLabel, telegramMessageID string
-	var decisionDeadline, nonWhitelistCancelAt uint32
+	var notificationID, projectName, familyLabel, telegramMessageID *string
+	var decisionDeadline, nonWhitelistCancelAt *uint32
 	var decidedAt *uint32
 
 	err := res.ScanNamed(
@@ -938,25 +938,12 @@ func scanReviewRequest(res result.Result) (*models.ReviewRequest, error) {
 		return nil, err
 	}
 
-	// Convert optional string fields
-	if notificationID != "" {
-		req.NotificationID = &notificationID
-	}
-	if projectName != "" {
-		req.ProjectName = &projectName
-	}
-	if familyLabel != "" {
-		req.FamilyLabel = &familyLabel
-	}
-	if telegramMessageID != "" {
-		req.TelegramMessageID = &telegramMessageID
-	}
-	if decisionDeadline != 0 {
-		req.DecisionDeadline = &decisionDeadline
-	}
-	if nonWhitelistCancelAt != 0 {
-		req.NonWhitelistCancelAt = &nonWhitelistCancelAt
-	}
+	req.NotificationID = notificationID
+	req.ProjectName = projectName
+	req.FamilyLabel = familyLabel
+	req.TelegramMessageID = telegramMessageID
+	req.DecisionDeadline = decisionDeadline
+	req.NonWhitelistCancelAt = nonWhitelistCancelAt
 	req.DecidedAt = decidedAt
 
 	return &req, nil
