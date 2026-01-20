@@ -8,10 +8,10 @@ import (
 
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/result"
-	"github.com/ydb-platform/ydb-go-sdk/v3/table/result/named"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 
 	"github.com/arseniisemenow/review-slot-guard-bot-common/pkg/models"
+	"github.com/flymedllva/ydb-go-qb/yscan"
 )
 
 // optionalDatetime creates an optional Datetime value from a uint32 pointer
@@ -44,18 +44,11 @@ func GetUserByTelegramChatID(ctx context.Context, telegramChatID int64) (*models
 
 	log.Printf("[YDB] GetUserByTelegramChatID: Query returned, checking rows...")
 
+	var user models.User
 	if res.NextRow() {
 		log.Printf("[YDB] GetUserByTelegramChatID: Found row for telegram_chat_id %d", telegramChatID)
 
-		var user models.User
-		err = res.ScanNamed(
-			named.Required("reviewer_login", &user.ReviewerLogin),
-			named.Required("status", &user.Status),
-			named.Required("telegram_chat_id", &user.TelegramChatID),
-			named.Required("created_at", &user.CreatedAt),
-			named.Optional("last_auth_success_at", &user.LastAuthSuccessAt),
-			named.Optional("last_auth_failure_at", &user.LastAuthFailureAt),
-		)
+		err = yscan.ScanRow(&user, res)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
@@ -87,16 +80,9 @@ func GetUserByReviewerLogin(ctx context.Context, reviewerLogin string) (*models.
 	}
 	defer res.Close()
 
+	var user models.User
 	if res.NextRow() {
-		var user models.User
-		err = res.ScanNamed(
-			named.Required("reviewer_login", &user.ReviewerLogin),
-			named.Required("status", &user.Status),
-			named.Required("telegram_chat_id", &user.TelegramChatID),
-			named.Required("created_at", &user.CreatedAt),
-			named.Optional("last_auth_success_at", &user.LastAuthSuccessAt),
-			named.Optional("last_auth_failure_at", &user.LastAuthFailureAt),
-		)
+		err = yscan.ScanRow(&user, res)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
@@ -187,14 +173,7 @@ func GetActiveUsers(ctx context.Context) ([]*models.User, error) {
 	var users []*models.User
 	for res.NextRow() {
 		var user models.User
-		err = res.ScanNamed(
-			named.Required("reviewer_login", &user.ReviewerLogin),
-			named.Required("status", &user.Status),
-			named.Required("telegram_chat_id", &user.TelegramChatID),
-			named.Required("created_at", &user.CreatedAt),
-			named.Optional("last_auth_success_at", &user.LastAuthSuccessAt),
-			named.Optional("last_auth_failure_at", &user.LastAuthFailureAt),
-		)
+		err = yscan.ScanRow(&user, res)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
@@ -228,16 +207,7 @@ func GetUserSettings(ctx context.Context, reviewerLogin string) (*models.UserSet
 
 	var settings models.UserSettings
 	if res.NextRow() {
-		err = res.ScanNamed(
-			named.Required("reviewer_login", &settings.ReviewerLogin),
-			named.Required("response_deadline_shift_minutes", &settings.ResponseDeadlineShiftMinutes),
-			named.Required("non_whitelist_cancel_delay_minutes", &settings.NonWhitelistCancelDelayMinutes),
-			named.Required("notify_whitelist_timeout", &settings.NotifyWhitelistTimeout),
-			named.Required("notify_non_whitelist_cancel", &settings.NotifyNonWhitelistCancel),
-			named.Required("slot_shift_threshold_minutes", &settings.SlotShiftThresholdMinutes),
-			named.Required("slot_shift_duration_minutes", &settings.SlotShiftDurationMinutes),
-			named.Required("cleanup_durations_minutes", &settings.CleanupDurationsMinutes),
-		)
+		err = yscan.ScanRow(&settings, res)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user settings: %w", err)
 		}
@@ -355,11 +325,7 @@ func GetUserWhitelist(ctx context.Context, reviewerLogin string) ([]*models.Whit
 	var entries []*models.WhitelistEntry
 	for res.NextRow() {
 		var entry models.WhitelistEntry
-		err = res.ScanNamed(
-			named.Required("reviewer_login", &entry.ReviewerLogin),
-			named.Required("entry_type", &entry.EntryType),
-			named.Required("name", &entry.Name),
-		)
+		err = yscan.ScanRow(&entry, res)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan whitelist entry: %w", err)
 		}
@@ -438,7 +404,7 @@ func IsInWhitelist(ctx context.Context, reviewerLogin, projectName, familyLabel 
 
 	if res.NextRow() {
 		var count uint32
-		err = res.ScanNamed(named.Required("count", &count))
+		err = yscan.ScanRow(&count, res)
 		if err != nil {
 			return false, fmt.Errorf("failed to scan count: %w", err)
 		}
@@ -470,7 +436,7 @@ func GetFamilyLabelForProject(ctx context.Context, projectName string) (string, 
 
 	if res.NextRow() {
 		var familyLabel string
-		err = res.ScanNamed(named.Required("family_label", &familyLabel))
+		err = yscan.ScanRow(&familyLabel, res)
 		if err != nil {
 			return "", fmt.Errorf("failed to scan family label: %w", err)
 		}
@@ -496,10 +462,7 @@ func GetAllProjectFamilies(ctx context.Context) ([]*models.ProjectFamily, error)
 	var families []*models.ProjectFamily
 	for res.NextRow() {
 		var family models.ProjectFamily
-		err = res.ScanNamed(
-			named.Required("family_label", &family.FamilyLabel),
-			named.Required("project_name", &family.ProjectName),
-		)
+		err = yscan.ScanRow(&family, res)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan project family: %w", err)
 		}
@@ -532,7 +495,7 @@ func GetProjectsByFamily(ctx context.Context, familyLabel string) ([]string, err
 	var projects []string
 	for res.NextRow() {
 		var projectName string
-		err = res.ScanNamed(named.Required("project_name", &projectName))
+		err = yscan.ScanRow(&projectName, res)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan project name: %w", err)
 		}
@@ -915,36 +878,10 @@ func UpdateReviewRequestToNotWhitelisted(ctx context.Context, id string, nonWhit
 // scanReviewRequest scans a review request from a result set
 func scanReviewRequest(res result.Result) (*models.ReviewRequest, error) {
 	var req models.ReviewRequest
-	var notificationID, projectName, familyLabel, telegramMessageID *string
-	var decisionDeadline, nonWhitelistCancelAt *uint32
-	var decidedAt *uint32
-
-	err := res.ScanNamed(
-		named.Required("id", &req.ID),
-		named.Required("reviewer_login", &req.ReviewerLogin),
-		named.Optional("notification_id", &notificationID),
-		named.Optional("project_name", &projectName),
-		named.Optional("family_label", &familyLabel),
-		named.Required("review_start_time", &req.ReviewStartTime),
-		named.Required("calendar_slot_id", &req.CalendarSlotID),
-		named.Optional("decision_deadline", &decisionDeadline),
-		named.Optional("non_whitelist_cancel_at", &nonWhitelistCancelAt),
-		named.Optional("telegram_message_id", &telegramMessageID),
-		named.Required("status", &req.Status),
-		named.Required("created_at", &req.CreatedAt),
-		named.Optional("decided_at", &decidedAt),
-	)
+	err := yscan.ScanRow(&req, res)
 	if err != nil {
 		return nil, err
 	}
-
-	req.NotificationID = notificationID
-	req.ProjectName = projectName
-	req.FamilyLabel = familyLabel
-	req.TelegramMessageID = telegramMessageID
-	req.DecisionDeadline = decisionDeadline
-	req.NonWhitelistCancelAt = nonWhitelistCancelAt
-	req.DecidedAt = decidedAt
 
 	return &req, nil
 }
@@ -971,13 +908,7 @@ func GetUserTokens(ctx context.Context, reviewerLogin string) (*models.UserToken
 
 	var tokens models.UserTokens
 	if res.NextRow() {
-		err = res.ScanNamed(
-			named.Required("reviewer_login", &tokens.ReviewerLogin),
-			named.Required("access_token", &tokens.AccessToken),
-			named.Required("refresh_token", &tokens.RefreshToken),
-			named.Required("created_at", &tokens.CreatedAt),
-			named.Required("updated_at", &tokens.UpdatedAt),
-		)
+		err = yscan.ScanRow(&tokens, res)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user tokens: %w", err)
 		}
