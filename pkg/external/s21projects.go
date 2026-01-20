@@ -17,7 +17,18 @@ func PopulateProjectFamilies(ctx context.Context, reviewerLogin string) error {
 
 	client := NewS21Client(tokens.AccessToken, tokens.RefreshToken)
 
-	graph, err := client.GetProjectGraph(ctx, reviewerLogin)
+	// Get current user to obtain student ID
+	userInfo, err := client.GetCurrentUser(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get current user: %w", err)
+	}
+
+	studentID := userInfo.User.GetCurrentUser.CurrentSchoolStudentID
+	if studentID == "" {
+		return fmt.Errorf("student ID not found for user %s", reviewerLogin)
+	}
+
+	graph, err := client.GetProjectGraph(ctx, studentID)
 	if err != nil {
 		return fmt.Errorf("failed to get project graph: %w", err)
 	}

@@ -18,9 +18,9 @@ type S21Client struct {
 
 // S21AuthProvider implements authentication using stored tokens
 type S21AuthProvider struct {
-	accessToken  string
-	refreshToken string
-	schoolID     string
+	accessToken    string
+	refreshToken   string
+	schoolID       string
 	contextHeaders *s21client.ContextHeaders
 }
 
@@ -39,9 +39,9 @@ func NewS21Client(accessToken, refreshToken string) *S21Client {
 // NewS21ClientWithSchoolID creates a new S21 client with full auth context
 func NewS21ClientWithSchoolID(accessToken, refreshToken, schoolID string, contextHeaders *s21client.ContextHeaders) *S21Client {
 	auth := &S21AuthProvider{
-		accessToken:     accessToken,
-		refreshToken:    refreshToken,
-		schoolID:        schoolID,
+		accessToken:    accessToken,
+		refreshToken:   refreshToken,
+		schoolID:       schoolID,
 		contextHeaders: contextHeaders,
 	}
 
@@ -69,10 +69,10 @@ func (a *S21AuthProvider) GetAuthCredentials(ctx context.Context) (s21client.Aut
 
 	if a.contextHeaders != nil {
 		creds.ContextHeaders = &s21client.ContextHeaders{
-			XEDUSchoolID:    a.contextHeaders.XEDUSchoolID,
-			XEDUProductID:   a.contextHeaders.XEDUProductID,
-			XEDUOrgUnitID:   a.contextHeaders.XEDUOrgUnitID,
-			XEDURouteInfo:   a.contextHeaders.XEDURouteInfo,
+			XEDUSchoolID:  a.contextHeaders.XEDUSchoolID,
+			XEDUProductID: a.contextHeaders.XEDUProductID,
+			XEDUOrgUnitID: a.contextHeaders.XEDUOrgUnitID,
+			XEDURouteInfo: a.contextHeaders.XEDURouteInfo,
 		}
 	}
 
@@ -146,7 +146,17 @@ func (c *S21Client) GetNotifications(ctx context.Context, offset, limit int64) (
 	return &resp, nil
 }
 
-// GetProjectGraph fetches the project dependency graph
+// GetCurrentUser fetches the current authenticated user information
+func (c *S21Client) GetCurrentUser(ctx context.Context) (*requests.GetCurrentUser_Data, error) {
+	resp, err := c.client.R().SetContext(ctx).GetCurrentUser(requests.GetCurrentUser_Variables{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current user: %w", err)
+	}
+
+	return &resp, nil
+}
+
+// GetProjectGraph fetches project dependency graph
 func (c *S21Client) GetProjectGraph(ctx context.Context, studentID string) (*requests.ProjectMapGetStudentGraphTemplate_Data, error) {
 	vars := requests.ProjectMapGetStudentGraphTemplate_Variables{
 		StudentID: studentID,
@@ -242,8 +252,8 @@ func Authenticate(ctx context.Context, username, password string) (*models.Token
 	// In a real scenario, we would extract and return the tokens
 	// For now, return a success response
 	return &models.TokenResponse{
-		AccessToken:      "authenticated", // Placeholder
-		TokenType:       "Bearer",
+		AccessToken: "authenticated", // Placeholder
+		TokenType:   "Bearer",
 	}, nil
 }
 
