@@ -6,7 +6,9 @@ import (
 	"time"
 
 	s21client "github.com/arseniisemenow/s21auto-client-go"
+	s21auth "github.com/arseniisemenow/s21auto-client-go/auth"
 	"github.com/arseniisemenow/s21auto-client-go/requests"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -16,34 +18,34 @@ import (
 // TestNewS21Client tests the S21Client constructor functions
 func TestNewS21Client(t *testing.T) {
 	tests := []struct {
-		name        string
-		accessToken string
+		name         string
+		accessToken  string
 		refreshToken string
-		expectNil   bool
+		expectNil    bool
 	}{
 		{
-			name:        "Valid tokens",
-			accessToken: "valid_access_token",
+			name:         "Valid tokens",
+			accessToken:  "valid_access_token",
 			refreshToken: "valid_refresh_token",
-			expectNil:   false,
+			expectNil:    false,
 		},
 		{
-			name:        "Empty access token",
-			accessToken: "",
+			name:         "Empty access token",
+			accessToken:  "",
 			refreshToken: "valid_refresh_token",
-			expectNil:   false,
+			expectNil:    false,
 		},
 		{
-			name:        "Empty refresh token",
-			accessToken: "valid_access_token",
+			name:         "Empty refresh token",
+			accessToken:  "valid_access_token",
 			refreshToken: "",
-			expectNil:   false,
+			expectNil:    false,
 		},
 		{
-			name:        "Both tokens empty",
-			accessToken: "",
+			name:         "Both tokens empty",
+			accessToken:  "",
 			refreshToken: "",
-			expectNil:   false,
+			expectNil:    false,
 		},
 	}
 
@@ -130,9 +132,9 @@ func TestNewS21ClientWithSchoolID(t *testing.T) {
 // TestNewS21ClientFromCreds tests the S21Client constructor with username/password
 func TestNewS21ClientFromCreds(t *testing.T) {
 	tests := []struct {
-		name     string
-		username string
-		password string
+		name      string
+		username  string
+		password  string
 		expectNil bool
 	}{
 		{
@@ -186,9 +188,54 @@ func TestS21AuthProvider_GetAuthCredentials(t *testing.T) {
 		{
 			name: "Full auth with context headers",
 			authProvider: &S21AuthProvider{
-				accessToken:  "test_access_token",
-				refreshToken: "test_refresh_token",
+				token: s21auth.Token{
+					AccessToken:  "test_access_token",
+					RefreshToken: "test_refresh_token",
+					IssueTime:     0,
+				},
 				schoolID:     "school123",
+				contextHeaders: &s21client.ContextHeaders{
+					XEDUSchoolID:  "school123",
+					XEDUProductID:  "product123",
+					XEDUOrgUnitID: "org123",
+					XEDURouteInfo: "route123",
+				},
+			},
+			expectError:    true,
+			expectedToken:  "",
+			expectedSchool: "school123",
+		},
+		{
+			name: "Auth without context headers",
+			authProvider: &S21AuthProvider{
+				token: s21auth.Token{
+					AccessToken:  "test_access_token",
+					RefreshToken: "test_refresh_token",
+					IssueTime:     0,
+				},
+				schoolID:     "school456",
+				contextHeaders: nil,
+			},
+			expectError:    true,
+			expectedToken:  "",
+			expectedSchool: "school456",
+		},
+		{
+			name: "Auth with empty tokens",
+			authProvider: &S21AuthProvider{
+				token: s21auth.Token{
+					AccessToken:  "",
+					RefreshToken: "",
+					IssueTime:     0,
+				},
+				schoolID:     "",
+				contextHeaders: nil,
+			},
+			expectError:    true,
+			expectedToken:  "",
+			expectedSchool: "",
+		},
+				schoolID: "school123",
 				contextHeaders: &s21client.ContextHeaders{
 					XEDUSchoolID:  "school123",
 					XEDUProductID: "product123",
@@ -203,9 +250,12 @@ func TestS21AuthProvider_GetAuthCredentials(t *testing.T) {
 		{
 			name: "Auth without context headers",
 			authProvider: &S21AuthProvider{
-				accessToken:  "test_access_token",
-				refreshToken: "test_refresh_token",
-				schoolID:     "school456",
+				token: s21auth.Token{
+					AccessToken:  "test_access_token",
+					RefreshToken: "test_refresh_token",
+					IssueTime:    0,
+				},
+				schoolID:       "school456",
 				contextHeaders: nil,
 			},
 			expectError:    false,
@@ -215,9 +265,12 @@ func TestS21AuthProvider_GetAuthCredentials(t *testing.T) {
 		{
 			name: "Auth with empty tokens",
 			authProvider: &S21AuthProvider{
-				accessToken:  "",
-				refreshToken: "",
-				schoolID:     "",
+				token: s21auth.Token{
+					AccessToken:  "",
+					RefreshToken: "",
+					IssueTime:    0,
+				},
+				schoolID:       "",
 				contextHeaders: nil,
 			},
 			expectError:    false,
@@ -681,7 +734,7 @@ func TestExtractBookings(t *testing.T) {
 						{
 							Bookings: []interface{}{
 								map[string]interface{}{
-									"id":         "booking-1",
+									"id":          "booking-1",
 									"eventSlotId": "slot-1",
 									"eventSlot": map[string]interface{}{
 										"start": baseTime.Format(time.RFC3339),

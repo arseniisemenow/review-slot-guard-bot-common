@@ -6,6 +6,7 @@ import (
 	"time"
 
 	s21client "github.com/arseniisemenow/s21auto-client-go"
+	s21auth "github.com/arseniisemenow/s21auto-client-go/auth"
 	"github.com/arseniisemenow/s21auto-client-go/requests"
 
 	"github.com/arseniisemenow/review-slot-guard-bot-common/pkg/models"
@@ -16,19 +17,54 @@ type S21Client struct {
 	client *s21client.Client
 }
 
-// S21AuthProvider implements authentication using stored tokens
+// S21AuthProvider implements authentication using stored tokens with automatic refresh
 type S21AuthProvider struct {
-	accessToken    string
-	refreshToken   string
+	token          s21auth.Token
 	schoolID       string
 	contextHeaders *s21client.ContextHeaders
+}
+
+func (provider *S21AuthProvider) refreshCredentials(ctx context.Context) error {
+	err := provider.token.Refresh(ctx)
+
+	if err != nil {
+		return err
+	}
+
+	if provider.schoolID == "" {
+		user, err := s21auth.RequestUserData(provider.token, ctx)
+
+		if err != nil {
+			return err
+		}
+
+		provider.schoolID = user.Roles[0].SchoolID
+	}
+
+	if provider.contextHeaders == nil {
+		headers, err := s21auth.RequestContextHeaders(provider.token, ctx)
+		if err != nil {
+			return err
+		}
+		provider.contextHeaders = &s21client.ContextHeaders{
+			XEDUSchoolID:  headers.XEDUSchoolID,
+			XEDUProductID: headers.XEDUProductID,
+			XEDUOrgUnitID: headers.XEDUOrgUnitID,
+			XEDURouteInfo: headers.XEDURouteInfo,
+		}
+	}
+
+	return nil
 }
 
 // NewS21Client creates a new S21 client with token-based auth
 func NewS21Client(accessToken, refreshToken string) *S21Client {
 	auth := &S21AuthProvider{
-		accessToken:  accessToken,
-		refreshToken: refreshToken,
+		token: s21auth.Token{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+			IssueTime:    time.Now().Unix(),
+		},
 	}
 
 	return &S21Client{
@@ -39,8 +75,11 @@ func NewS21Client(accessToken, refreshToken string) *S21Client {
 // NewS21ClientWithSchoolID creates a new S21 client with full auth context
 func NewS21ClientWithSchoolID(accessToken, refreshToken, schoolID string, contextHeaders *s21client.ContextHeaders) *S21Client {
 	auth := &S21AuthProvider{
-		accessToken:    accessToken,
-		refreshToken:   refreshToken,
+		token: s21auth.Token{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+			IssueTime:    time.Now().Unix(),
+		},
 		schoolID:       schoolID,
 		contextHeaders: contextHeaders,
 	}
@@ -58,22 +97,18 @@ func NewS21ClientFromCreds(username, password string) *S21Client {
 	}
 }
 
-// GetAuthCredentials implements the AuthProvider interface
+// GetAuthCredentials implements AuthProvider interface
 func (a *S21AuthProvider) GetAuthCredentials(ctx context.Context) (s21client.AuthCredentials, error) {
-	// Try to refresh token if needed
-	// For now, just return the stored tokens
-	creds := s21client.AuthCredentials{
-		Token:    a.accessToken,
-		SchoolId: a.schoolID,
+	err := a.refreshCredentials(ctx)
+
+	if err != nil {
+		return s21client.AuthCredentials{}, err
 	}
 
-	if a.contextHeaders != nil {
-		creds.ContextHeaders = &s21client.ContextHeaders{
-			XEDUSchoolID:  a.contextHeaders.XEDUSchoolID,
-			XEDUProductID: a.contextHeaders.XEDUProductID,
-			XEDUOrgUnitID: a.contextHeaders.XEDUOrgUnitID,
-			XEDURouteInfo: a.contextHeaders.XEDURouteInfo,
-		}
+	creds := s21client.AuthCredentials{
+		Token:          a.token.AccessToken,
+		SchoolId:       a.schoolID,
+		ContextHeaders: a.contextHeaders,
 	}
 
 	return creds, nil
@@ -146,7 +181,7 @@ func (c *S21Client) GetNotifications(ctx context.Context, offset, limit int64) (
 	return &resp, nil
 }
 
-// GetCurrentUser fetches the current authenticated user information
+// GetCurrentUser fetches current authenticated user information
 func (c *S21Client) GetCurrentUser(ctx context.Context) (*requests.GetCurrentUser_Data, error) {
 	resp, err := c.client.R().SetContext(ctx).GetCurrentUser(requests.GetCurrentUser_Variables{})
 	if err != nil {
@@ -170,7 +205,7 @@ func (c *S21Client) GetProjectGraph(ctx context.Context, studentID string) (*req
 	return &resp, nil
 }
 
-// ExtractFamilies extracts project families from the graph response
+// ExtractFamilies extracts project families from graph response
 func ExtractFamilies(graph *requests.ProjectMapGetStudentGraphTemplate_Data) ([]*models.ProjectFamily, error) {
 	var families []*models.ProjectFamily
 
@@ -180,7 +215,6 @@ func ExtractFamilies(graph *requests.ProjectMapGetStudentGraphTemplate_Data) ([]
 		for _, item := range node.Items {
 			var projectName string
 
-			// Project name can be in Goal or Course
 			if item.Goal != nil && item.Goal.ProjectName != "" {
 				projectName = item.Goal.ProjectName
 			} else if item.Course != nil && item.Course.ProjectName != "" {
@@ -199,7 +233,7 @@ func ExtractFamilies(graph *requests.ProjectMapGetStudentGraphTemplate_Data) ([]
 	return families, nil
 }
 
-// GetFamilyLabels extracts all family labels from the graph
+// GetFamilyLabels extracts all family labels from graph
 func GetFamilyLabels(graph *requests.ProjectMapGetStudentGraphTemplate_Data) []string {
 	labels := make([]string, 0, len(graph.HolyGraph.GetStudentGraphTemplate.Nodes))
 
@@ -238,26 +272,20 @@ func GetProjectsInFamily(graph *requests.ProjectMapGetStudentGraphTemplate_Data,
 
 // Authenticate performs authentication with username/password
 func Authenticate(ctx context.Context, username, password string) (*models.TokenResponse, error) {
-	// Use the s21auto auth package
 	client := NewS21ClientFromCreds(username, password)
 
-	// Make a simple call to trigger authentication
-	// This will authenticate and cache the token
 	_, err := client.client.R().SetContext(ctx).GetCurrentUser(requests.GetCurrentUser_Variables{})
 	if err != nil {
 		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
 
-	// Note: The s21auto client handles token refresh internally
-	// In a real scenario, we would extract and return the tokens
-	// For now, return a success response
 	return &models.TokenResponse{
 		AccessToken: "authenticated", // Placeholder
 		TokenType:   "Bearer",
 	}, nil
 }
 
-// CalendarSlot represents a simplified calendar slot from the API response
+// CalendarSlot represents a simplified calendar slot from API response
 type CalendarSlot struct {
 	ID    string
 	Start time.Time
@@ -265,7 +293,7 @@ type CalendarSlot struct {
 	Type  string
 }
 
-// CalendarBooking represents a simplified booking from the API response
+// CalendarBooking represents a simplified booking from API response
 type CalendarBooking struct {
 	ID          string
 	EventSlotID string
@@ -297,8 +325,6 @@ func ExtractBookings(data *requests.CalendarGetEvents_Data) []CalendarBooking {
 	var bookings []CalendarBooking
 
 	for _, event := range data.CalendarEventS21.GetMyCalendarEvents {
-		// Bookings are in the Bookings field as interface{}
-		// We need to type assert to extract data
 		for _, b := range event.Bookings {
 			if bookingMap, ok := b.(map[string]interface{}); ok {
 				booking := CalendarBooking{}
@@ -311,7 +337,6 @@ func ExtractBookings(data *requests.CalendarGetEvents_Data) []CalendarBooking {
 					booking.EventSlotID = eventSlotID
 				}
 
-				// Extract event slot timing
 				if eventSlot, ok := bookingMap["eventSlot"].(map[string]interface{}); ok {
 					if start, ok := eventSlot["start"].(string); ok {
 						if t, err := time.Parse(time.RFC3339, start); err == nil {
@@ -324,7 +349,6 @@ func ExtractBookings(data *requests.CalendarGetEvents_Data) []CalendarBooking {
 						}
 					}
 
-					// Extract project name from task
 					if task, ok := bookingMap["task"].(map[string]interface{}); ok {
 						if goalName, ok := task["goalName"].(string); ok {
 							booking.ProjectName = goalName
@@ -342,7 +366,7 @@ func ExtractBookings(data *requests.CalendarGetEvents_Data) []CalendarBooking {
 	return bookings
 }
 
-// Notification represents a notification from the API
+// Notification represents a notification from API response
 type Notification struct {
 	ID                string
 	RelatedObjectType string
@@ -353,7 +377,7 @@ type Notification struct {
 	GroupName         string
 }
 
-// ExtractNotifications extracts notifications from the API response
+// ExtractNotifications extracts notifications from API response
 func ExtractNotifications(data *requests.GetUserNotifications_Data) []Notification {
 	var notifications []Notification
 
@@ -375,9 +399,7 @@ func ExtractNotifications(data *requests.GetUserNotifications_Data) []Notificati
 // FindNotificationBySlotID finds a notification matching a calendar slot ID and time
 func FindNotificationBySlotID(notifications []Notification, slotID string, slotTime time.Time) *Notification {
 	for _, n := range notifications {
-		// Match by related object ID (slot ID) and approximate time
 		if n.RelatedObjectID == slotID {
-			// Check if time is close (within 1 minute)
 			if n.Time.Sub(slotTime).Abs() < time.Minute {
 				return &n
 			}
@@ -390,7 +412,6 @@ func FindNotificationBySlotID(notifications []Notification, slotID string, slotT
 // FindNotificationByTime finds a notification matching a specific time
 func FindNotificationByTime(notifications []Notification, slotTime time.Time, window time.Duration) *Notification {
 	for _, n := range notifications {
-		// Check if time is within the window
 		if n.Time.Sub(slotTime).Abs() < window {
 			return &n
 		}
@@ -401,8 +422,6 @@ func FindNotificationByTime(notifications []Notification, slotTime time.Time, wi
 
 // ExtractProjectNameFromMessage attempts to extract a project name from notification message
 func ExtractProjectNameFromMessage(message string) string {
-	// This is a simple extraction - in production, you might use regex
-	// The message format varies, so this is a best-effort attempt
 	return message
 }
 
