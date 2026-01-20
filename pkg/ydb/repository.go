@@ -961,3 +961,19 @@ func DeleteUserTokens(ctx context.Context, reviewerLogin string) error {
 
 	return Exec(ctx, sql, params...)
 }
+
+// DeleteUser removes a user record from the database
+func DeleteUser(ctx context.Context, telegramChatID int64) error {
+	sql := TablePathPrefix("") + `
+		DECLARE $telegram_chat_id AS Int64;
+
+		DELETE FROM users
+		WHERE telegram_chat_id = $telegram_chat_id;
+	`
+
+	params := []table.ParameterOption{
+		table.ValueParam("$telegram_chat_id", types.Int64Value(telegramChatID)),
+	}
+
+	return Exec(ctx, sql, params...)
+}
