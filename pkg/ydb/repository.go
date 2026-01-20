@@ -891,7 +891,7 @@ func GetUserTokens(ctx context.Context, reviewerLogin string) (*models.UserToken
 	sql := TablePathPrefix("") + `
 		DECLARE $reviewer_login AS Utf8;
 
-		SELECT reviewer_login, access_token, refresh_token, created_at, updated_at
+		SELECT reviewer_login, access_token, refresh_token, created_at, updated_at, issue_time, expiry_time
 		FROM user_tokens
 		WHERE reviewer_login = $reviewer_login;
 	`
@@ -919,20 +919,24 @@ func GetUserTokens(ctx context.Context, reviewerLogin string) (*models.UserToken
 }
 
 // StoreUserTokens stores or updates access and refresh tokens for a user
-func StoreUserTokens(ctx context.Context, reviewerLogin, accessToken, refreshToken string) error {
+func StoreUserTokens(ctx context.Context, reviewerLogin, accessToken, refreshToken string, issueTime, expiryTime int64) error {
 	sql := TablePathPrefix("") + `
 		DECLARE $reviewer_login AS Utf8;
 		DECLARE $access_token AS Utf8;
 		DECLARE $refresh_token AS Utf8;
 		DECLARE $now AS Datetime;
+		DECLARE $issue_time AS Int64;
+		DECLARE $expiry_time AS Int64;
 
-		UPSERT INTO user_tokens (reviewer_login, access_token, refresh_token, created_at, updated_at)
+		UPSERT INTO user_tokens (reviewer_login, access_token, refresh_token, created_at, updated_at, issue_time, expiry_time)
 		VALUES (
 			$reviewer_login,
 			$access_token,
 			$refresh_token,
 			$now,
-			$now
+			$now,
+			$issue_time,
+			$expiry_time
 		);
 	`
 
@@ -941,6 +945,8 @@ func StoreUserTokens(ctx context.Context, reviewerLogin, accessToken, refreshTok
 		table.ValueParam("$access_token", types.TextValue(accessToken)),
 		table.ValueParam("$refresh_token", types.TextValue(refreshToken)),
 		table.ValueParam("$now", types.DatetimeValue(uint32(time.Now().Unix()))),
+		table.ValueParam("$issue_time", types.Int64Value(issueTime)),
+		table.ValueParam("$expiry_time", types.Int64Value(expiryTime)),
 	}
 
 	return Exec(ctx, sql, params...)

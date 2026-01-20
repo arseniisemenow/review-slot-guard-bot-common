@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-resty/resty/v2"
+
 	s21client "github.com/arseniisemenow/s21auto-client-go"
 	s21auth "github.com/arseniisemenow/s21auto-client-go/auth"
 	"github.com/arseniisemenow/s21auto-client-go/requests"
@@ -19,14 +21,18 @@ type S21Client struct {
 
 // S21AuthProvider implements authentication using stored access token
 type S21AuthProvider struct {
-	accessToken    string
+	token          s21auth.Token
 	schoolID       string
 	contextHeaders *s21client.ContextHeaders
 }
 
 func (provider *S21AuthProvider) refreshCredentials(ctx context.Context) error {
+	if err := provider.token.Refresh(ctx); err != nil {
+		return err
+	}
+
 	if provider.schoolID == "" {
-		user, err := s21auth.RequestUserData(s21auth.Token{AccessToken: provider.accessToken}, ctx)
+		user, err := s21auth.RequestUserData(provider.token, ctx)
 
 		if err != nil {
 			return err
@@ -36,7 +42,7 @@ func (provider *S21AuthProvider) refreshCredentials(ctx context.Context) error {
 	}
 
 	if provider.contextHeaders == nil {
-		headers, err := s21auth.RequestContextHeaders(s21auth.Token{AccessToken: provider.accessToken}, ctx)
+		headers, err := s21auth.RequestContextHeaders(provider.token, ctx)
 		if err != nil {
 			return err
 		}
@@ -51,10 +57,46 @@ func (provider *S21AuthProvider) refreshCredentials(ctx context.Context) error {
 	return nil
 }
 
-// NewS21Client creates a new S21 client with token-based auth
+// GetAuthCredentials implements AuthProvider interface
+func (a *S21AuthProvider) GetAuthCredentials(ctx context.Context) (s21client.AuthCredentials, error) {
+	err := a.refreshCredentials(ctx)
+
+	if err != nil {
+		return s21client.AuthCredentials{}, err
+	}
+
+	creds := s21client.AuthCredentials{
+		Token:          a.token.AccessToken,
+		SchoolId:       a.schoolID,
+		ContextHeaders: a.contextHeaders,
+	}
+
+	return creds, nil
+}
+
+// NewS21Client creates a new S21 client with token-based auth (deprecated - use NewS21ClientFromTokens)
 func NewS21Client(accessToken, refreshToken string) *S21Client {
 	auth := &S21AuthProvider{
-		accessToken: accessToken,
+		token: s21auth.Token{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+		},
+	}
+
+	return &S21Client{
+		client: s21client.New(auth),
+	}
+}
+
+// NewS21ClientFromTokens creates a new S21 client from stored tokens with expiry tracking
+func NewS21ClientFromTokens(accessToken, refreshToken string, issueTime, expiryTime int64) *S21Client {
+	auth := &S21AuthProvider{
+		token: s21auth.Token{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+			IssueTime:    issueTime,
+			ExpiryTime:   expiryTime,
+		},
 	}
 
 	return &S21Client{
@@ -64,6 +106,20 @@ func NewS21Client(accessToken, refreshToken string) *S21Client {
 
 // NewS21ClientWithSchoolID creates a new S21 client with full auth context
 func NewS21ClientWithSchoolID(accessToken, refreshToken, schoolID string, contextHeaders *s21client.ContextHeaders) *S21Client {
+	auth := &S21AuthProvider{
+		token: s21auth.Token{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+		},
+		schoolID:       schoolID,
+		contextHeaders: contextHeaders,
+	}
+
+	return &S21Client{
+		client: s21client.New(auth),
+	}
+}
+
 	auth := &S21AuthProvider{
 		accessToken:    accessToken,
 		schoolID:       schoolID,
@@ -258,16 +314,19 @@ func GetProjectsInFamily(graph *requests.ProjectMapGetStudentGraphTemplate_Data,
 
 // Authenticate performs authentication with username/password
 func Authenticate(ctx context.Context, username, password string) (*models.TokenResponse, error) {
-	client := NewS21ClientFromCreds(username, password)
-
-	_, err := client.client.R().SetContext(ctx).GetCurrentUser(requests.GetCurrentUser_Variables{})
+	token, err := s21auth.RequestToken(username, password, ctx)
 	if err != nil {
 		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
 
 	return &models.TokenResponse{
-		AccessToken: "authenticated", // Placeholder
-		TokenType:   "Bearer",
+		AccessToken:      token.AccessToken,
+		RefreshToken:     token.RefreshToken,
+		ExpiresIn:        token.ExpiryTime - token.IssueTime,
+		RefreshExpiresIn: token.RefreshToken != 0,
+		TokenType:        "Bearer",
+		IssueTime:        token.IssueTime,
+		ExpiryTime:       token.ExpiryTime,
 	}, nil
 }
 

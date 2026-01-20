@@ -15,7 +15,7 @@ func PopulateProjectFamilies(ctx context.Context, reviewerLogin string) error {
 		return fmt.Errorf("failed to get user tokens: %w", err)
 	}
 
-	client := NewS21Client(tokens.AccessToken, tokens.RefreshToken)
+	client := NewS21ClientFromTokens(tokens.AccessToken, tokens.RefreshToken, tokens.IssueTime, tokens.ExpiryTime)
 
 	// Get current user to obtain student ID
 	userInfo, err := client.GetCurrentUser(ctx)
