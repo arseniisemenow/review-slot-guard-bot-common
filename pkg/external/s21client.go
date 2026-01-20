@@ -17,22 +17,16 @@ type S21Client struct {
 	client *s21client.Client
 }
 
-// S21AuthProvider implements authentication using stored tokens with automatic refresh
+// S21AuthProvider implements authentication using stored access token
 type S21AuthProvider struct {
-	token          s21auth.Token
+	accessToken    string
 	schoolID       string
 	contextHeaders *s21client.ContextHeaders
 }
 
 func (provider *S21AuthProvider) refreshCredentials(ctx context.Context) error {
-	err := provider.token.Refresh(ctx)
-
-	if err != nil {
-		return err
-	}
-
 	if provider.schoolID == "" {
-		user, err := s21auth.RequestUserData(provider.token, ctx)
+		user, err := s21auth.RequestUserData(s21auth.Token{AccessToken: provider.accessToken}, ctx)
 
 		if err != nil {
 			return err
@@ -42,7 +36,7 @@ func (provider *S21AuthProvider) refreshCredentials(ctx context.Context) error {
 	}
 
 	if provider.contextHeaders == nil {
-		headers, err := s21auth.RequestContextHeaders(provider.token, ctx)
+		headers, err := s21auth.RequestContextHeaders(s21auth.Token{AccessToken: provider.accessToken}, ctx)
 		if err != nil {
 			return err
 		}
@@ -60,11 +54,7 @@ func (provider *S21AuthProvider) refreshCredentials(ctx context.Context) error {
 // NewS21Client creates a new S21 client with token-based auth
 func NewS21Client(accessToken, refreshToken string) *S21Client {
 	auth := &S21AuthProvider{
-		token: s21auth.Token{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
-			IssueTime:    time.Now().Unix(),
-		},
+		accessToken: accessToken,
 	}
 
 	return &S21Client{
@@ -75,11 +65,7 @@ func NewS21Client(accessToken, refreshToken string) *S21Client {
 // NewS21ClientWithSchoolID creates a new S21 client with full auth context
 func NewS21ClientWithSchoolID(accessToken, refreshToken, schoolID string, contextHeaders *s21client.ContextHeaders) *S21Client {
 	auth := &S21AuthProvider{
-		token: s21auth.Token{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
-			IssueTime:    time.Now().Unix(),
-		},
+		accessToken:    accessToken,
 		schoolID:       schoolID,
 		contextHeaders: contextHeaders,
 	}
@@ -106,7 +92,7 @@ func (a *S21AuthProvider) GetAuthCredentials(ctx context.Context) (s21client.Aut
 	}
 
 	creds := s21client.AuthCredentials{
-		Token:          a.token.AccessToken,
+		Token:          a.accessToken,
 		SchoolId:       a.schoolID,
 		ContextHeaders: a.contextHeaders,
 	}
