@@ -9,6 +9,7 @@ import (
 	s21client "github.com/arseniisemenow/s21auto-client-go"
 	s21auth "github.com/arseniisemenow/s21auto-client-go/auth"
 	"github.com/arseniisemenow/s21auto-client-go/requests"
+	"github.com/arseniisemenow/s21auto-client-go/review"
 	"github.com/go-resty/resty/v2"
 
 	"github.com/arseniisemenow/review-slot-guard-bot-common/pkg/models"
@@ -481,9 +482,16 @@ func ExtractBookingsFromMyBookings(data *requests.CalendarGetMyBookings_Data) []
 	var bookings []CalendarBooking
 
 	for _, b := range data.Student.GetMyCalendarBookings {
-		if bookingMap, ok := b.(map[string]interface{}); ok {
-			booking := CalendarBooking{}
+		// Debug: log the type of each booking element
+		if b == nil {
+			// Skip nil entries
+			continue
+		}
 
+		booking := CalendarBooking{}
+
+		// Strategy 1: Try as map[string]interface{}
+		if bookingMap, ok := b.(map[string]interface{}); ok {
 			// Extract basic booking info
 			if id, ok := bookingMap["id"].(string); ok {
 				booking.ID = id
@@ -493,13 +501,24 @@ func ExtractBookingsFromMyBookings(data *requests.CalendarGetMyBookings_Data) []
 				booking.EventSlotID = eventSlotID
 			}
 
-			// Extract event slot info
+			// Extract event slot info - handle as map or as time directly
 			if eventSlot, ok := bookingMap["eventSlot"].(map[string]interface{}); ok {
+				// Try time.Time first
 				if start, ok := eventSlot["start"].(time.Time); ok {
 					booking.Start = start
+				} else if startStr, ok := eventSlot["start"].(string); ok {
+					// Try parsing as RFC3339 string
+					if t, err := time.Parse(time.RFC3339, startStr); err == nil {
+						booking.Start = t
+					}
 				}
+
 				if end, ok := eventSlot["end"].(time.Time); ok {
 					booking.End = end
+				} else if endStr, ok := eventSlot["end"].(string); ok {
+					if t, err := time.Parse(time.RFC3339, endStr); err == nil {
+						booking.End = t
+					}
 				}
 			}
 
@@ -509,10 +528,59 @@ func ExtractBookingsFromMyBookings(data *requests.CalendarGetMyBookings_Data) []
 					booking.ProjectName = goalName
 				}
 			}
-
-			if booking.ID != "" && booking.EventSlotID != "" {
-				bookings = append(bookings, booking)
+		} else {
+			// Strategy 2: Try JSON marshaling/unmarshaling for complex types
+			jsonData, err := json.Marshal(b)
+			if err != nil {
+				// Skip entries that can't be marshaled
+				continue
 			}
+
+			var parsed map[string]interface{}
+			if err := json.Unmarshal(jsonData, &parsed); err != nil {
+				// Skip entries that can't be unmarshaled
+				continue
+			}
+
+			// Extract using the same logic as above
+			if id, ok := parsed["id"].(string); ok {
+				booking.ID = id
+			}
+
+			if eventSlotID, ok := parsed["eventSlotId"].(string); ok {
+				booking.EventSlotID = eventSlotID
+			}
+
+			// Extract project name
+			if task, ok := parsed["task"].(map[string]interface{}); ok {
+				if goalName, ok := task["goalName"].(string); ok {
+					booking.ProjectName = goalName
+				}
+			}
+
+			// Extract event slot times
+			if eventSlot, ok := parsed["eventSlot"].(map[string]interface{}); ok {
+				if start, ok := eventSlot["start"].(time.Time); ok {
+					booking.Start = start
+				} else if startStr, ok := eventSlot["start"].(string); ok {
+					if t, err := time.Parse(time.RFC3339, startStr); err == nil {
+						booking.Start = t
+					}
+				}
+
+				if end, ok := eventSlot["end"].(time.Time); ok {
+					booking.End = end
+				} else if endStr, ok := eventSlot["end"].(string); ok {
+					if t, err := time.Parse(time.RFC3339, endStr); err == nil {
+						booking.End = t
+					}
+				}
+			}
+		}
+
+		// Only add valid bookings
+		if booking.ID != "" && booking.EventSlotID != "" {
+			bookings = append(bookings, booking)
 		}
 	}
 
@@ -581,4 +649,36 @@ func ExtractProjectNameFromMessage(message string) string {
 // FormatCallbackData creates callback data string for Telegram buttons
 func FormatCallbackData(action, reviewRequestID string) string {
 	return fmt.Sprintf("%s:%s", action, reviewRequestID)
+}
+
+// GetMergedReviewsWithProjects fetches merged reviews with project names from notifications
+// This uses the review.GetMergedReviewsWithProjects API to merge calendar events with notifications
+func (c *S21Client) GetMergedReviewsWithProjects(ctx context.Context) ([]CalendarBooking, error) {
+	mergedReviews, err := review.GetMergedReviewsWithProjects(ctx, c.client)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get merged reviews: %w", err)
+	}
+
+	var bookings []CalendarBooking
+	utcPlus3 := time.FixedZone("UTC+3", 3*3600)
+
+	for _, r := range mergedReviews {
+		// Parse time from format "2006.01.02, 15:04" (UTC+3)
+		startTime, err := time.ParseInLocation("2006.01.02, 15:04", r.Time, utcPlus3)
+		if err != nil {
+			// Skip invalid time entries
+			continue
+		}
+
+		booking := CalendarBooking{
+			ID:          r.SlotID,
+			EventSlotID: r.SlotID,
+			Start:       startTime,
+			ProjectName: r.ProjectName,
+		}
+
+		bookings = append(bookings, booking)
+	}
+
+	return bookings, nil
 }
