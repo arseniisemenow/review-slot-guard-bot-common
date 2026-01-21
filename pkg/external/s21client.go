@@ -11,7 +11,7 @@ import (
 	"github.com/arseniisemenow/s21auto-client-go/requests"
 	"github.com/go-resty/resty/v2"
 
-	"github.com/arseniisemenow/review-slot-guard-bot/functions/common/pkg/models"
+	"github.com/arseniisemenow/review-slot-guard-bot-common/pkg/models"
 )
 
 // S21Client wraps the s21auto client with our application logic
