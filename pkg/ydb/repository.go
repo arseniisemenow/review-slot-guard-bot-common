@@ -403,7 +403,7 @@ func IsInWhitelist(ctx context.Context, reviewerLogin, projectName, familyLabel 
 	defer res.Close()
 
 	if res.NextRow() {
-		var count uint32
+		var count uint64
 		err = yscan.ScanRow(&count, res)
 		if err != nil {
 			return false, fmt.Errorf("failed to scan count: %w", err)
