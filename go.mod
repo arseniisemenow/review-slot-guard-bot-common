@@ -1,6 +1,6 @@
 module github.com/arseniisemenow/review-slot-guard-bot-common
 
-go 1.23.9
+go 1.23
 
 require (
 	github.com/arseniisemenow/s21auto-client-go v0.1.6
