@@ -216,6 +216,21 @@ func (c *S21Client) GetCalendarEvents(ctx context.Context, from, to time.Time) (
 	return &resp, nil
 }
 
+// GetMyBookings fetches user's bookings with project names
+func (c *S21Client) GetMyBookings(ctx context.Context, from, to time.Time) (*requests.CalendarGetMyBookings_Data, error) {
+	vars := requests.CalendarGetMyBookings_Variables{
+		From: from.UTC(),
+		To:   to.UTC(),
+	}
+
+	resp, err := c.client.R().SetContext(ctx).CalendarGetMyBookings(vars)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get my bookings: %w", err)
+	}
+
+	return &resp, nil
+}
+
 // ChangeEventSlot modifies a calendar slot timing
 func (c *S21Client) ChangeEventSlot(ctx context.Context, slotID string, start, end time.Time) error {
 	vars := requests.CalendarChangeEventSlot_Variables{
@@ -454,6 +469,49 @@ func ExtractBookings(data *requests.CalendarGetEvents_Data) []CalendarBooking {
 				if booking.ID != "" {
 					bookings = append(bookings, booking)
 				}
+			}
+		}
+	}
+
+	return bookings
+}
+
+// ExtractBookingsFromMyBookings extracts bookings from GetMyBookings API response
+func ExtractBookingsFromMyBookings(data *requests.CalendarGetMyBookings_Data) []CalendarBooking {
+	var bookings []CalendarBooking
+
+	for _, b := range data.Student.GetMyCalendarBookings {
+		if bookingMap, ok := b.(map[string]interface{}); ok {
+			booking := CalendarBooking{}
+
+			// Extract basic booking info
+			if id, ok := bookingMap["id"].(string); ok {
+				booking.ID = id
+			}
+
+			if eventSlotID, ok := bookingMap["eventSlotId"].(string); ok {
+				booking.EventSlotID = eventSlotID
+			}
+
+			// Extract event slot info
+			if eventSlot, ok := bookingMap["eventSlot"].(map[string]interface{}); ok {
+				if start, ok := eventSlot["start"].(time.Time); ok {
+					booking.Start = start
+				}
+				if end, ok := eventSlot["end"].(time.Time); ok {
+					booking.End = end
+				}
+			}
+
+			// Extract project name from task
+			if task, ok := bookingMap["task"].(map[string]interface{}); ok {
+				if goalName, ok := task["goalName"].(string); ok {
+					booking.ProjectName = goalName
+				}
+			}
+
+			if booking.ID != "" && booking.EventSlotID != "" {
+				bookings = append(bookings, booking)
 			}
 		}
 	}

@@ -51,7 +51,7 @@ func TestNewS21Client(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := NewS21Client(tt.accessToken, tt.refreshToken)
+			client := NewS21Client(tt.accessToken, tt.refreshToken, "")
 			if tt.expectNil {
 				assert.Nil(t, client)
 			} else {
@@ -118,7 +118,7 @@ func TestNewS21ClientWithSchoolID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := NewS21ClientWithSchoolID(tt.accessToken, tt.refreshToken, tt.schoolID, tt.contextHeaders)
+			client := NewS21ClientWithSchoolID(tt.accessToken, tt.refreshToken, tt.schoolID, tt.contextHeaders, "")
 			if tt.expectNil {
 				assert.Nil(t, client)
 			} else {
@@ -980,9 +980,9 @@ func TestFindNotificationBySlotID(t *testing.T) {
 func TestCancelSlot(t *testing.T) {
 	// CancelSlot is a wrapper around DeleteSlot, so we just test that it exists
 	t.Run("CancelSlot exists as function", func(t *testing.T) {
-		client := NewS21Client("token", "refresh")
+		client := NewS21Client("token", "refresh", "")
 		assert.NotNil(t, client)
-		// We can't test the actual call without mocking HTTP, but we verify the function exists
+		// We can't test actual call without mocking HTTP, but we verify the function exists
 		_ = client.CancelSlot
 	})
 }

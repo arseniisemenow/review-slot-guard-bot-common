@@ -12,7 +12,7 @@ import (
 
 func TestS21ClientCreation(t *testing.T) {
 	t.Run("NewS21Client with tokens", func(t *testing.T) {
-		client := NewS21Client("access_token", "refresh_token")
+		client := NewS21Client("access_token", "refresh_token", "")
 		assert.NotNil(t, client)
 		assert.NotNil(t, client.client)
 	})
@@ -24,7 +24,7 @@ func TestS21ClientCreation(t *testing.T) {
 			XEDUOrgUnitID: "org123",
 			XEDURouteInfo: "route123",
 		}
-		client := NewS21ClientWithSchoolID("access_token", "refresh_token", "school123", headers)
+		client := NewS21ClientWithSchoolID("access_token", "refresh_token", "school123", headers, "")
 		assert.NotNil(t, client)
 	})
 
