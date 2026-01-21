@@ -1,6 +1,6 @@
 module github.com/arseniisemenow/review-slot-guard-bot-common
 
-go 1.23.9
+go 1.23.0
 
 require (
 	github.com/arseniisemenow/s21auto-client-go v0.1.7
@@ -10,7 +10,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/yandex-cloud/go-genproto v0.39.0
 	github.com/yandex-cloud/go-sdk v0.30.0
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.125.1
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.100.0
 	github.com/ydb-platform/ydb-go-yc-metadata v0.6.1
 )
 
@@ -23,7 +23,6 @@ require (
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
-	github.com/kr/pretty v0.3.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20251125145508-6d7ef87db5cb // indirect
