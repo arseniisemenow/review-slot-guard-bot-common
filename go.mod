@@ -14,6 +14,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/flymedllva/ydb-go-qb v0.0.0-20240108142018-7a30d57e17f1 // indirect
 	github.com/georgysavva/scany/v2 v2.0.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-resty/resty/v2 v2.7.0 // indirect
