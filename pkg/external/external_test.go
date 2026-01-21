@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/arseniisemenow/review-slot-guard-bot/functions/common/pkg/models"
+	"github.com/arseniisemenow/review-slot-guard-bot-common/pkg/models"
 )
 
 // TestNewS21Client tests the S21Client constructor functions

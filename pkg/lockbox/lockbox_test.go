@@ -12,16 +12,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/arseniisemenow/review-slot-guard-bot/functions/common/pkg/models"
+	"github.com/arseniisemenow/review-slot-guard-bot-common/pkg/models"
 )
 
 // MockPayloadServiceClient is a mock implementation of the PayloadServiceClient
 type MockPayloadServiceClient struct {
-	mu             sync.Mutex
-	getCallCount   int
+	mu              sync.Mutex
+	getCallCount    int
 	payloadToReturn *models.LockboxPayload
-	errorToReturn  error
-	closed         bool
+	errorToReturn   error
+	closed          bool
 }
 
 func NewMockPayloadServiceClient() *MockPayloadServiceClient {
@@ -568,7 +568,6 @@ func TestGetUserTokens(t *testing.T) {
 					RefreshToken: "refresh2",
 				},
 			},
-
 		}
 
 		SetPayloadCache(testPayload, 5*time.Minute)
@@ -793,7 +792,7 @@ func TestDeleteUserTokens(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("Delete from empty payload", func(t *testing.T) {
+	t.Run("DELETE FROM empty payload", func(t *testing.T) {
 		testPayload := &models.LockboxPayload{
 			Version: 1,
 			Users:   make(map[string]models.UserTokens),
@@ -1246,14 +1245,14 @@ func TestTableDrivenGetUserTokens(t *testing.T) {
 	defer teardownTestEnv(t)
 
 	tests := []struct {
-		name          string
-		payload       *models.LockboxPayload
-		username      string
-		wantErr       bool
-		errContains   string
-		wantToken     string
-		setupCache    bool
-		cacheTTL      time.Duration
+		name        string
+		payload     *models.LockboxPayload
+		username    string
+		wantErr     bool
+		errContains string
+		wantToken   string
+		setupCache  bool
+		cacheTTL    time.Duration
 	}{
 		{
 			name: "successful retrieval",
@@ -1266,11 +1265,11 @@ func TestTableDrivenGetUserTokens(t *testing.T) {
 					},
 				},
 			},
-			username:    "testuser",
-			wantErr:     false,
-			wantToken:   "test_access",
-			setupCache:  true,
-			cacheTTL:    5 * time.Minute,
+			username:   "testuser",
+			wantErr:    false,
+			wantToken:  "test_access",
+			setupCache: true,
+			cacheTTL:   5 * time.Minute,
 		},
 		{
 			name: "user not found",
@@ -1507,7 +1506,7 @@ func TestTableDrivenDeleteUserTokens(t *testing.T) {
 			errContains: "not yet implemented",
 		},
 		{
-			name: "delete from empty users map",
+			name: "DELETE FROM empty users MAP",
 			initialCache: &models.LockboxPayload{
 				Version: 1,
 				Users:   make(map[string]models.UserTokens),

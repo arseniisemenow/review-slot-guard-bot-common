@@ -7,7 +7,7 @@ import (
 	s21client "github.com/arseniisemenow/s21auto-client-go"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/arseniisemenow/review-slot-guard-bot/functions/common/pkg/models"
+	"github.com/arseniisemenow/review-slot-guard-bot-common/pkg/models"
 )
 
 func TestS21ClientCreation(t *testing.T) {

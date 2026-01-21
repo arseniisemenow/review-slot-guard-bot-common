@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/arseniisemenow/review-slot-guard-bot/functions/common/pkg/ydb"
+	"github.com/arseniisemenow/review-slot-guard-bot-common/pkg/ydb"
 )
 
 // PopulateProjectFamilies fetches and stores all project families from School 21 API

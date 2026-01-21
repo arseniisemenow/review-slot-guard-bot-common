@@ -8,20 +8,20 @@ import (
 	"sync"
 	"time"
 
+	lockbox1 "github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
 	ycsdk "github.com/yandex-cloud/go-sdk"
 	lockboxpayload "github.com/yandex-cloud/go-sdk/gen/lockboxpayload"
-	lockbox1 "github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
 
-	"github.com/arseniisemenow/review-slot-guard-bot/functions/common/pkg/models"
+	"github.com/arseniisemenow/review-slot-guard-bot-common/pkg/models"
 )
 
 var (
-	client         *lockboxpayload.PayloadServiceClient
-	clientOnce     sync.Once
-	payloadCache   *models.LockboxPayload
-	cacheExpiry    time.Time
-	cacheMutex     sync.RWMutex
-	secretID       string
+	client       *lockboxpayload.PayloadServiceClient
+	clientOnce   sync.Once
+	payloadCache *models.LockboxPayload
+	cacheExpiry  time.Time
+	cacheMutex   sync.RWMutex
+	secretID     string
 )
 
 // ClientAdapter implements LockboxClient using the global functions
@@ -134,8 +134,8 @@ func StoreUserTokens(ctx context.Context, reviewerLogin, accessToken, refreshTok
 	payloadCache = nil
 	cacheMutex.Unlock()
 
-	return fmt.Errorf("StoreUserTokens: writing to Lockbox is not yet implemented via SDK. " +
-		"Please use 'yc lockbox payload add' or the REST API to update the secret. " +
+	return fmt.Errorf("StoreUserTokens: writing to Lockbox is not yet implemented via SDK. "+
+		"Please use 'yc lockbox payload add' or the REST API to update the secret. "+
 		"Payload: %s", string(data))
 }
 

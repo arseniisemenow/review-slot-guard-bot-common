@@ -14,7 +14,7 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/types"
 
-	"github.com/arseniisemenow/review-slot-guard-bot/functions/common/pkg/models"
+	"github.com/arseniisemenow/review-slot-guard-bot-common/pkg/models"
 )
 
 // ============================================================================
@@ -502,7 +502,7 @@ func TestBuildInClause(t *testing.T) {
 			wantCount: 3,
 		},
 		{
-			name:      "all intermediate statuses",
+			name: "all intermediate statuses",
 			statuses: []string{
 				models.StatusUnknownProjectReview,
 				models.StatusKnownProjectReview,
@@ -557,9 +557,9 @@ func buildInClause(statuses []string) string {
 // TestSQLValidation tests SQL query validation patterns
 func TestSQLValidation(t *testing.T) {
 	tests := []struct {
-		name        string
-		sql         string
-		shouldHave  []string
+		name          string
+		sql           string
+		shouldHave    []string
 		shouldNotHave []string
 	}{
 		{
@@ -667,11 +667,11 @@ func TestParameterBuilding(t *testing.T) {
 			buildFn: func() []interface{} {
 				now := uint32(time.Now().Unix())
 				user := &models.User{
-					ReviewerLogin:      "testuser",
-					Status:             models.UserStatusActive,
-					TelegramChatID:     123456789,
-					CreatedAt:          now,
-					LastAuthSuccessAt:  &now,
+					ReviewerLogin:     "testuser",
+					Status:            models.UserStatusActive,
+					TelegramChatID:    123456789,
+					CreatedAt:         now,
+					LastAuthSuccessAt: &now,
 				}
 				return []interface{}{
 					"$reviewer_login", types.TextValue(user.ReviewerLogin),
@@ -786,12 +786,12 @@ func TestUserModelOperations(t *testing.T) {
 	t.Run("create valid user", func(t *testing.T) {
 		now := uint32(time.Now().Unix())
 		user := &models.User{
-			ReviewerLogin:      "testuser",
-			Status:             models.UserStatusActive,
-			TelegramChatID:     123456789,
-			CreatedAt:          now,
-			LastAuthSuccessAt:  &now,
-			LastAuthFailureAt:  nil,
+			ReviewerLogin:     "testuser",
+			Status:            models.UserStatusActive,
+			TelegramChatID:    123456789,
+			CreatedAt:         now,
+			LastAuthSuccessAt: &now,
+			LastAuthFailureAt: nil,
 		}
 
 		assert.Equal(t, "testuser", user.ReviewerLogin)
@@ -803,10 +803,10 @@ func TestUserModelOperations(t *testing.T) {
 	t.Run("create user with failure timestamp", func(t *testing.T) {
 		failureTime := uint32(time.Now().Unix())
 		user := &models.User{
-			ReviewerLogin:      "testuser",
-			Status:             models.UserStatusInactive,
-			TelegramChatID:     123456789,
-			LastAuthFailureAt:  &failureTime,
+			ReviewerLogin:     "testuser",
+			Status:            models.UserStatusInactive,
+			TelegramChatID:    123456789,
+			LastAuthFailureAt: &failureTime,
 		}
 
 		assert.NotNil(t, user.LastAuthFailureAt)
