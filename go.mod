@@ -3,7 +3,7 @@ module github.com/arseniisemenow/review-slot-guard-bot-common
 go 1.23.0
 
 require (
-	github.com/arseniisemenow/s21auto-client-go v0.1.7
+	github.com/arseniisemenow/s21auto-client-go v0.2.0
 	github.com/flymedllva/ydb-go-qb v0.0.0-20240108142018-7a30d57e17f1
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1

@@ -407,6 +407,7 @@ type CalendarSlot struct {
 // CalendarBooking represents a simplified booking from API response
 type CalendarBooking struct {
 	ID          string
+	BookingID   string
 	EventSlotID string
 	Start       time.Time
 	End         time.Time
@@ -672,7 +673,8 @@ func (c *S21Client) GetMergedReviewsWithProjects(ctx context.Context) ([]Calenda
 
 		booking := CalendarBooking{
 			ID:          r.SlotID,
-			EventSlotID: r.SlotID,
+			EventSlotID: r.Booking.EventSlot.ID,
+			BookingID:   r.Booking.ID,
 			Start:       startTime,
 			ProjectName: r.ProjectName,
 		}

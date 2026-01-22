@@ -4,6 +4,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/arseniisemenow/s21auto-client-go v0.1.7 h1:HgWZ5KFGr1s7GaYXA9oWwPLMj98NiFyFjU/tz961ceo=
 github.com/arseniisemenow/s21auto-client-go v0.1.7/go.mod h1:RIwItWvXTyhsKmbIDtOUAiHiahNRtlNRGY0nUS6d41Y=
+github.com/arseniisemenow/s21auto-client-go v0.2.0 h1:V1Ikt9v0HAWgUQnH8E5U0hCTfV3+3ldsa08soyadWO0=
+github.com/arseniisemenow/s21auto-client-go v0.2.0/go.mod h1:RIwItWvXTyhsKmbIDtOUAiHiahNRtlNRGY0nUS6d41Y=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash/v2 v2.1.1/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
