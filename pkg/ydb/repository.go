@@ -22,6 +22,14 @@ func optionalDatetime(ts *uint32) types.Value {
 	return types.OptionalValue(types.DatetimeValue(*ts))
 }
 
+// optionalText creates an optional Text value from a string pointer
+func optionalText(s *string) types.Value {
+	if s == nil {
+		return types.NullValue(types.TypeText)
+	}
+	return types.OptionalValue(types.TextValue(*s))
+}
+
 // GetUserByTelegramChatID retrieves a user by their Telegram chat ID
 func GetUserByTelegramChatID(ctx context.Context, telegramChatID int64) (*models.User, error) {
 	sql := TablePathPrefix("") + `
@@ -548,9 +556,11 @@ func CreateReviewRequest(ctx context.Context, req *models.ReviewRequest) error {
 		DECLARE $calendar_slot_id AS Utf8;
 		DECLARE $status AS Utf8;
 		DECLARE $created_at AS Datetime;
+		DECLARE $project_name AS Optional<Utf8>;
+		DECLARE $family_label AS Optional<Utf8>;
 
-		INSERT INTO review_requests (id, reviewer_login, review_start_time, calendar_slot_id, status, created_at)
-		VALUES ($id, $reviewer_login, $review_start_time, $calendar_slot_id, $status, $created_at);
+		INSERT INTO review_requests (id, reviewer_login, review_start_time, calendar_slot_id, status, created_at, project_name, family_label)
+		VALUES ($id, $reviewer_login, $review_start_time, $calendar_slot_id, $status, $created_at, $project_name, $family_label);
 	`
 
 	params := []table.ParameterOption{
@@ -560,6 +570,8 @@ func CreateReviewRequest(ctx context.Context, req *models.ReviewRequest) error {
 		table.ValueParam("$calendar_slot_id", types.TextValue(req.CalendarSlotID)),
 		table.ValueParam("$status", types.TextValue(req.Status)),
 		table.ValueParam("$created_at", types.DatetimeValue(req.CreatedAt)),
+		table.ValueParam("$project_name", optionalText(req.ProjectName)),
+		table.ValueParam("$family_label", optionalText(req.FamilyLabel)),
 	}
 
 	return Exec(ctx, sql, params...)
