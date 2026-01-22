@@ -118,6 +118,7 @@ type ReviewRequest struct {
 	FamilyLabel          *string `db:"family_label"`
 	ReviewStartTime      uint32  `db:"review_start_time"`
 	CalendarSlotID       string  `db:"calendar_slot_id"`
+	BookingID            string  `db:"booking_id"`
 	DecisionDeadline     *uint32 `db:"decision_deadline"`
 	NonWhitelistCancelAt *uint32 `db:"non_whitelist_cancel_at"`
 	TelegramMessageID    *string `db:"telegram_message_id"`

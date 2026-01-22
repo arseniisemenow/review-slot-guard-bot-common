@@ -554,20 +554,29 @@ func CreateReviewRequest(ctx context.Context, req *models.ReviewRequest) error {
 		DECLARE $reviewer_login AS Utf8;
 		DECLARE $review_start_time AS Datetime;
 		DECLARE $calendar_slot_id AS Utf8;
+		DECLARE $booking_id AS Optional<Utf8>;
 		DECLARE $status AS Utf8;
 		DECLARE $created_at AS Datetime;
 		DECLARE $project_name AS Optional<Utf8>;
 		DECLARE $family_label AS Optional<Utf8>;
 
-		INSERT INTO review_requests (id, reviewer_login, review_start_time, calendar_slot_id, status, created_at, project_name, family_label)
-		VALUES ($id, $reviewer_login, $review_start_time, $calendar_slot_id, $status, $created_at, $project_name, $family_label);
+		INSERT INTO review_requests (id, reviewer_login, review_start_time, calendar_slot_id, booking_id, status, created_at, project_name, family_label)
+		VALUES ($id, $reviewer_login, $review_start_time, $calendar_slot_id, $booking_id, $status, $created_at, $project_name, $family_label);
 	`
+
+	var bookingIDValue types.Value
+	if req.BookingID != "" {
+		bookingIDValue = types.OptionalValue(types.TextValue(req.BookingID))
+	} else {
+		bookingIDValue = types.NullValue(types.TypeText)
+	}
 
 	params := []table.ParameterOption{
 		table.ValueParam("$id", types.TextValue(req.ID)),
 		table.ValueParam("$reviewer_login", types.TextValue(req.ReviewerLogin)),
 		table.ValueParam("$review_start_time", types.DatetimeValue(req.ReviewStartTime)),
 		table.ValueParam("$calendar_slot_id", types.TextValue(req.CalendarSlotID)),
+		table.ValueParam("$booking_id", bookingIDValue),
 		table.ValueParam("$status", types.TextValue(req.Status)),
 		table.ValueParam("$created_at", types.DatetimeValue(req.CreatedAt)),
 		table.ValueParam("$project_name", optionalText(req.ProjectName)),
@@ -583,7 +592,7 @@ func GetReviewRequestByID(ctx context.Context, id string) (*models.ReviewRequest
 		DECLARE $id AS Utf8;
 
 		SELECT id, reviewer_login, notification_id, project_name, family_label, review_start_time,
-		       calendar_slot_id, decision_deadline, non_whitelist_cancel_at, telegram_message_id,
+		       calendar_slot_id, booking_id, decision_deadline, non_whitelist_cancel_at, telegram_message_id,
 		       status, created_at, decided_at
 		FROM review_requests
 		WHERE id = $id;
@@ -612,7 +621,7 @@ func GetReviewRequestByCalendarSlotID(ctx context.Context, calendarSlotID string
 		DECLARE $calendar_slot_id AS Utf8;
 
 		SELECT id, reviewer_login, notification_id, project_name, family_label, review_start_time,
-		       calendar_slot_id, decision_deadline, non_whitelist_cancel_at, telegram_message_id,
+		       calendar_slot_id, booking_id, decision_deadline, non_whitelist_cancel_at, telegram_message_id,
 		       status, created_at, decided_at
 		FROM review_requests
 		WHERE calendar_slot_id = $calendar_slot_id;
@@ -652,7 +661,7 @@ func GetReviewRequestsByStatus(ctx context.Context, statuses []string) ([]*model
 
 	sql := TablePathPrefix("") + fmt.Sprintf(`
 		SELECT id, reviewer_login, notification_id, project_name, family_label, review_start_time,
-		       calendar_slot_id, decision_deadline, non_whitelist_cancel_at, telegram_message_id,
+		       calendar_slot_id, booking_id, decision_deadline, non_whitelist_cancel_at, telegram_message_id,
 		       status, created_at, decided_at
 		FROM review_requests
 		WHERE status IN (%s);
@@ -695,7 +704,7 @@ func GetReviewRequestsByUserAndStatus(ctx context.Context, reviewerLogin string,
 		DECLARE $reviewer_login AS Utf8;
 
 		SELECT id, reviewer_login, notification_id, project_name, family_label, review_start_time,
-		       calendar_slot_id, decision_deadline, non_whitelist_cancel_at, telegram_message_id,
+		       calendar_slot_id, booking_id, decision_deadline, non_whitelist_cancel_at, telegram_message_id,
 		       status, created_at, decided_at
 		FROM review_requests
 		WHERE reviewer_login = $reviewer_login AND status IN (%s);
@@ -729,7 +738,7 @@ func GetExpiredWaitingForApprove(ctx context.Context) ([]*models.ReviewRequest, 
 		DECLARE $now AS Datetime;
 
 		SELECT id, reviewer_login, notification_id, project_name, family_label, review_start_time,
-		       calendar_slot_id, decision_deadline, non_whitelist_cancel_at, telegram_message_id,
+		       calendar_slot_id, booking_id, decision_deadline, non_whitelist_cancel_at, telegram_message_id,
 		       status, created_at, decided_at
 		FROM review_requests
 		WHERE status = "WAITING_FOR_APPROVE" AND decision_deadline <= $now;
@@ -763,7 +772,7 @@ func GetExpiredNotWhitelisted(ctx context.Context) ([]*models.ReviewRequest, err
 		DECLARE $now AS Datetime;
 
 		SELECT id, reviewer_login, notification_id, project_name, family_label, review_start_time,
-		       calendar_slot_id, decision_deadline, non_whitelist_cancel_at, telegram_message_id,
+		       calendar_slot_id, booking_id, decision_deadline, non_whitelist_cancel_at, telegram_message_id,
 		       status, created_at, decided_at
 		FROM review_requests
 		WHERE status = "NOT_WHITELISTED" AND non_whitelist_cancel_at <= $now;
