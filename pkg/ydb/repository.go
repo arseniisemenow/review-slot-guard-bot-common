@@ -554,7 +554,7 @@ func CreateReviewRequest(ctx context.Context, req *models.ReviewRequest) error {
 		DECLARE $reviewer_login AS Utf8;
 		DECLARE $review_start_time AS Datetime;
 		DECLARE $calendar_slot_id AS Utf8;
-		DECLARE $booking_id AS Optional<Utf8>;
+		DECLARE $booking_id AS Utf8;
 		DECLARE $status AS Utf8;
 		DECLARE $created_at AS Datetime;
 		DECLARE $project_name AS Optional<Utf8>;
@@ -564,19 +564,12 @@ func CreateReviewRequest(ctx context.Context, req *models.ReviewRequest) error {
 		VALUES ($id, $reviewer_login, $review_start_time, $calendar_slot_id, $booking_id, $status, $created_at, $project_name, $family_label);
 	`
 
-	var bookingIDValue types.Value
-	if req.BookingID != "" {
-		bookingIDValue = types.OptionalValue(types.TextValue(req.BookingID))
-	} else {
-		bookingIDValue = types.NullValue(types.TypeText)
-	}
-
 	params := []table.ParameterOption{
 		table.ValueParam("$id", types.TextValue(req.ID)),
 		table.ValueParam("$reviewer_login", types.TextValue(req.ReviewerLogin)),
 		table.ValueParam("$review_start_time", types.DatetimeValue(req.ReviewStartTime)),
 		table.ValueParam("$calendar_slot_id", types.TextValue(req.CalendarSlotID)),
-		table.ValueParam("$booking_id", bookingIDValue),
+		table.ValueParam("$booking_id", types.TextValue(req.BookingID)),
 		table.ValueParam("$status", types.TextValue(req.Status)),
 		table.ValueParam("$created_at", types.DatetimeValue(req.CreatedAt)),
 		table.ValueParam("$project_name", optionalText(req.ProjectName)),
