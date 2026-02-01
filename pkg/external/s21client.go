@@ -267,6 +267,24 @@ func (c *S21Client) CancelSlot(ctx context.Context, slotID string) error {
 	return c.DeleteSlot(ctx, slotID)
 }
 
+// CancelBooking cancels a review booking using correct API
+func (c *S21Client) CancelBooking(ctx context.Context, bookingID string) error {
+	vars := requests.RemoveP2P_Variables{
+		BookingID: bookingID,
+	}
+
+	resp, err := c.client.R().SetContext(ctx).RemoveP2P(vars)
+	if err != nil {
+		return fmt.Errorf("failed to cancel booking: %w", err)
+	}
+
+	if !resp.Student.RemoveBookingFromEventSlot {
+		return fmt.Errorf("booking removal failed for ID: %s", bookingID)
+	}
+
+	return nil
+}
+
 // GetNotifications fetches user notifications
 func (c *S21Client) GetNotifications(ctx context.Context, offset, limit int64) (*requests.GetUserNotifications_Data, error) {
 	vars := requests.GetUserNotifications_Variables{

@@ -21,3 +21,11 @@ git commit -m "your message, keep it short"
 # Example: git tag v1.2.3  (bump appropriately)
 git tag vX.X.X
 git push origin master --tags
+
+
+### Function Dependencies Update
+After publishing new version:
+```bash
+cd functions/periodic_job && go get github.com/arseniisemenow/review-slot-guard-bot-common@v1.2.3
+cd functions/telegram_handler && go get github.com/arseniisemenow/review-slot-guard-bot-common@v1.2.3
+```
