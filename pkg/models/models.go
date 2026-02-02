@@ -6,6 +6,7 @@ const (
 	StatusKnownProjectReview          = "KNOWN_PROJECT_REVIEW"
 	StatusWhitelisted                 = "WHITELISTED"
 	StatusNotWhitelisted              = "NOT_WHITELISTED"
+	StatusWaitingForAutoCancel        = "WAITING_FOR_AUTO_CANCEL"
 	StatusNeedToApprove               = "NEED_TO_APPROVE"
 	StatusWaitingForApprove           = "WAITING_FOR_APPROVE"
 	StatusApproved                    = "APPROVED"
@@ -39,6 +40,7 @@ func IsIntermediateStatus(status string) bool {
 		StatusKnownProjectReview,
 		StatusWhitelisted,
 		StatusNotWhitelisted,
+		StatusWaitingForAutoCancel,
 		StatusNeedToApprove,
 		StatusWaitingForApprove:
 		return true
@@ -194,6 +196,7 @@ func IsValidStatus(status string) bool {
 		StatusKnownProjectReview,
 		StatusWhitelisted,
 		StatusNotWhitelisted,
+		StatusWaitingForAutoCancel,
 		StatusNeedToApprove,
 		StatusWaitingForApprove,
 		StatusApproved,

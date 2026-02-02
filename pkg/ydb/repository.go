@@ -889,6 +889,28 @@ func UpdateReviewRequestToNotWhitelisted(ctx context.Context, id string, nonWhit
 	return Exec(ctx, sql, params...)
 }
 
+// UpdateReviewRequestToWaitingForAutoCancel updates a review request to WAITING_FOR_AUTO_CANCEL
+func UpdateReviewRequestToWaitingForAutoCancel(ctx context.Context, id string, nonWhitelistCancelAt uint32) error {
+	sql := TablePathPrefix("") + `
+		DECLARE $id AS Utf8;
+		DECLARE $non_whitelist_cancel_at AS Datetime;
+		DECLARE $status AS Utf8;
+
+		UPDATE review_requests
+		SET non_whitelist_cancel_at = $non_whitelist_cancel_at,
+		    status = $status
+		WHERE id = $id;
+	`
+
+	params := []table.ParameterOption{
+		table.ValueParam("$id", types.TextValue(id)),
+		table.ValueParam("$non_whitelist_cancel_at", types.DatetimeValue(nonWhitelistCancelAt)),
+		table.ValueParam("$status", types.TextValue(models.StatusWaitingForAutoCancel)),
+	}
+
+	return Exec(ctx, sql, params...)
+}
+
 // scanReviewRequest scans a review request from a result set
 func scanReviewRequest(res result.Result) (*models.ReviewRequest, error) {
 	var req models.ReviewRequest
